@@ -1,0 +1,14 @@
+{
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": [
+    "--fast"
+  ],
+  "go.testEnvFile": "${workspaceFolder}/.env",
+  "cSpell.ignorePaths": [
+    "go.mod",
+    "go.sum",
+    ".github/actions/**/*.yaml",
+    ".github/workflows/**/*.yaml",
+    ".vscode/*"
+  ],
+}

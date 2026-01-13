@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/woozymasta/yc-scheduler/pkg/config/config",
+  "$ref": "#/$defs/Config",
+  "$defs": {
+    "ActionConfig": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enabled indicates whether this action is enabled."
+        },
+        "time": {
+          "$ref": "#/$defs/Time",
+          "description": "Time specifies the time to perform the action (for time-based schedules)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "enabled"
+      ],
+      "description": "ActionConfig defines configuration for a specific action."
+    },
+    "Actions": {
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/ActionConfig",
+          "description": "Start defines when to start the resource."
+        },
+        "stop": {
+          "$ref": "#/$defs/ActionConfig",
+          "description": "Stop defines when to stop the resource."
+        },
+        "restart": {
+          "$ref": "#/$defs/ActionConfig",
+          "description": "Restart defines when to restart the resource."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Actions defines what actions to perform on the resource."
+    },
+    "Config": {
+      "properties": {
+        "schedules": {
+          "items": {
+            "$ref": "#/$defs/Schedule"
+          },
+          "type": "array",
+          "minItems": 1,
+          "description": "Schedules contains all scheduled tasks."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "schedules"
+      ],
+      "description": "Config represents the main application configuration."
+    },
+    "CronJobConfig": {
+      "properties": {
+        "crontab": {
+          "$ref": "#/$defs/Crontab",
+          "description": "Crontab is a cron expression (e.g., \"0 9 * * *\" for daily at 9 AM)."
+        },
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for the cron schedule."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "crontab"
+      ],
+      "description": "CronJobConfig defines configuration for a cron-based schedule."
+    },
+    "Crontab": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(\\S+\\s+){4,5}\\S+$",
+      "description": "Cron expression (5 or 6 fields: minute hour day month weekday [second])",
+      "examples": [
+        "0 9 * * *",
+        "0 0 * * 0",
+        "*/5 * * * *"
+      ]
+    },
+    "DailyJobConfig": {
+      "properties": {
+        "time": {
+          "$ref": "#/$defs/Time",
+          "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
+        },
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for the schedule."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "time"
+      ],
+      "description": "DailyJobConfig defines configuration for a daily schedule."
+    },
+    "Duration": {
+      "type": "string",
+      "pattern": "^(?:\\d+(?:\\.\\d+)?(?:s|m|h|d|w))+$",
+      "format": "duration",
+      "title": "Human readable duration",
+      "description": "Duration string: a positive sequence of \u003cnumber\u003e\u003cunit\u003e tokens. Units:\n* `s` — seconds\n* `m` — minutes (`60` s)\n* `h` — hours (`60` m)\n* `d` — days (`24` h)\n* `w` — weeks (`7` d)\n",
+      "examples": [
+        "2h45m",
+        "1.5d",
+        "2w",
+        "90m",
+        "18h"
+      ]
+    },
+    "DurationJobConfig": {
+      "properties": {
+        "duration": {
+          "$ref": "#/$defs/Duration",
+          "description": "Duration specifies the interval duration (e.g., \"5s\", \"1h\", \"30m\")."
+        },
+        "start_time": {
+          "$ref": "#/$defs/RFC3339Time",
+          "description": "StartTime specifies when to start the schedule (optional)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "duration"
+      ],
+      "description": "DurationJobConfig defines configuration for a duration-based schedule."
+    },
+    "MonthlyJobConfig": {
+      "properties": {
+        "day": {
+          "type": "integer",
+          "maximum": 31,
+          "minimum": 1,
+          "description": "Day specifies the day of the month (1-31).",
+          "examples": [
+            1
+          ]
+        },
+        "time": {
+          "$ref": "#/$defs/Time",
+          "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
+        },
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for the schedule."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "day",
+        "time"
+      ],
+      "description": "MonthlyJobConfig defines configuration for a monthly schedule."
+    },
+    "OneTimeJobConfig": {
+      "properties": {
+        "time": {
+          "$ref": "#/$defs/RFC3339Time",
+          "description": "Time specifies when to execute the job (RFC3339 format)."
+        },
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for the schedule."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "time"
+      ],
+      "description": "OneTimeJobConfig defines configuration for a one-time schedule."
+    },
+    "RFC3339Time": {
+      "type": "string",
+      "minLength": 20,
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2})$",
+      "format": "date-time",
+      "description": "Time in RFC3339 format (e.g., 2024-01-01T09:00:00Z)",
+      "examples": [
+        "2024-01-01T09:00:00Z",
+        "2024-12-31T23:59:59+03:00"
+      ]
+    },
+    "Resource": {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "vm",
+            "k8s_cluster",
+            "k8s_node_group"
+          ],
+          "description": "Type specifies the resource type (vm, k8s_cluster, k8s_node_group).",
+          "examples": [
+            "vm"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID is the resource identifier in Yandex Cloud.",
+          "examples": [
+            "fhm1234567890abcdef"
+          ]
+        },
+        "folder_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "FolderID is the Yandex Cloud folder ID containing the resource.",
+          "examples": [
+            "b1g1234567890abcdef"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "type",
+        "id",
+        "folder_id"
+      ],
+      "description": "Resource defines a cloud resource to manage."
+    },
+    "Schedule": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name is a unique identifier for the schedule.",
+          "examples": [
+            "vm-production-start"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "cron",
+            "daily",
+            "weekly",
+            "monthly",
+            "duration",
+            "one-time"
+          ],
+          "description": "Type specifies the schedule type (cron, daily, weekly, monthly, duration, one-time).",
+          "examples": [
+            "daily"
+          ]
+        },
+        "resource": {
+          "$ref": "#/$defs/Resource",
+          "description": "Resource defines the target resource to manage."
+        },
+        "actions": {
+          "$ref": "#/$defs/Actions",
+          "description": "Actions defines what actions to perform at scheduled times."
+        },
+        "cron_job": {
+          "$ref": "#/$defs/CronJobConfig",
+          "description": "CronJob configuration (used when Type is \"cron\")."
+        },
+        "daily_job": {
+          "$ref": "#/$defs/DailyJobConfig",
+          "description": "DailyJob configuration (used when Type is \"daily\")."
+        },
+        "weekly_job": {
+          "$ref": "#/$defs/WeeklyJobConfig",
+          "description": "WeeklyJob configuration (used when Type is \"weekly\")."
+        },
+        "monthly_job": {
+          "$ref": "#/$defs/MonthlyJobConfig",
+          "description": "MonthlyJob configuration (used when Type is \"monthly\")."
+        },
+        "duration_job": {
+          "$ref": "#/$defs/DurationJobConfig",
+          "description": "DurationJob configuration (used when Type is \"duration\")."
+        },
+        "one_time_job": {
+          "$ref": "#/$defs/OneTimeJobConfig",
+          "description": "OneTimeJob configuration (used when Type is \"one-time\")."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "type",
+        "resource",
+        "actions"
+      ],
+      "description": "Schedule defines a scheduled task for managing cloud resources."
+    },
+    "Time": {
+      "type": "string",
+      "minLength": 5,
+      "pattern": "^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$",
+      "description": "Time of day in HH:MM or HH:MM:SS format",
+      "examples": [
+        "09:00",
+        "23:59",
+        "12:30:45"
+      ]
+    },
+    "Timezone": {
+      "type": "string",
+      "description": "IANA timezone name (e.g., Europe/Moscow, America/New_York, UTC)",
+      "examples": [
+        "UTC",
+        "Europe/Moscow",
+        "America/New_York",
+        "Asia/Tokyo"
+      ]
+    },
+    "WeeklyJobConfig": {
+      "properties": {
+        "day": {
+          "type": "integer",
+          "maximum": 6,
+          "minimum": 0,
+          "description": "Day specifies the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).",
+          "examples": [
+            1
+          ]
+        },
+        "time": {
+          "$ref": "#/$defs/Time",
+          "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
+        },
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for the schedule."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "day",
+        "time"
+      ],
+      "description": "WeeklyJobConfig defines configuration for a weekly schedule."
+    }
+  },
+  "title": "YC Scheduler Configuration",
+  "description": "Configuration schema for YC Scheduler application"
+}
