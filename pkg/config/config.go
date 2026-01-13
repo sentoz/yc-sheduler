@@ -8,14 +8,6 @@ type Config struct {
 
 // Schedule defines a scheduled task for managing cloud resources.
 type Schedule struct {
-	// Name is a unique identifier for the schedule.
-	Name string `yaml:"name" json:"name" default:"" jsonschema:"minLength=1,example=vm-production-start"`
-
-	// Type specifies the schedule type (cron, daily, weekly, monthly, duration, one-time).
-	Type string `yaml:"type" json:"type" default:"" jsonschema:"enum=cron,enum=daily,enum=weekly,enum=monthly,enum=duration,enum=one-time,example=daily"`
-
-	// Resource defines the target resource to manage.
-	Resource Resource `yaml:"resource" json:"resource"`
 
 	// Actions defines what actions to perform at scheduled times.
 	Actions Actions `yaml:"actions" json:"actions"`
@@ -37,6 +29,15 @@ type Schedule struct {
 
 	// OneTimeJob configuration (used when Type is "one-time").
 	OneTimeJob *OneTimeJobConfig `yaml:"one_time_job,omitempty" json:"one_time_job,omitempty"`
+
+	// Resource defines the target resource to manage.
+	Resource Resource `yaml:"resource" json:"resource"`
+
+	// Name is a unique identifier for the schedule.
+	Name string `yaml:"name" json:"name" default:"" jsonschema:"minLength=1,example=vm-production-start"`
+
+	// Type specifies the schedule type (cron, daily, weekly, monthly, duration, one-time).
+	Type string `yaml:"type" json:"type" default:"" jsonschema:"enum=cron,enum=daily,enum=weekly,enum=monthly,enum=duration,enum=one-time,example=daily"`
 }
 
 // Resource defines a cloud resource to manage.
@@ -65,11 +66,11 @@ type Actions struct {
 
 // ActionConfig defines configuration for a specific action.
 type ActionConfig struct {
-	// Enabled indicates whether this action is enabled.
-	Enabled bool `yaml:"enabled" json:"enabled" jsonschema:"example=true"`
-
 	// Time specifies the time to perform the action (for time-based schedules).
 	Time Time `yaml:"time,omitempty" json:"time,omitempty"`
+
+	// Enabled indicates whether this action is enabled.
+	Enabled bool `yaml:"enabled" json:"enabled" jsonschema:"example=true"`
 }
 
 // CronJobConfig defines configuration for a cron-based schedule.
@@ -92,35 +93,35 @@ type DailyJobConfig struct {
 
 // WeeklyJobConfig defines configuration for a weekly schedule.
 type WeeklyJobConfig struct {
-	// Day specifies the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).
-	Day int `yaml:"day" json:"day" default:"0" jsonschema:"minimum=0,maximum=6,example=1"`
-
 	// Time specifies the time of day (HH:MM or HH:MM:SS format).
 	Time Time `yaml:"time" json:"time" default:""`
 
 	// Timezone specifies the timezone for the schedule.
 	Timezone Timezone `yaml:"timezone,omitempty" json:"timezone,omitempty" default:"UTC"`
+
+	// Day specifies the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday).
+	Day int `yaml:"day" json:"day" default:"0" jsonschema:"minimum=0,maximum=6,example=1"`
 }
 
 // MonthlyJobConfig defines configuration for a monthly schedule.
 type MonthlyJobConfig struct {
-	// Day specifies the day of the month (1-31).
-	Day int `yaml:"day" json:"day" default:"1" jsonschema:"minimum=1,maximum=31,example=1"`
-
 	// Time specifies the time of day (HH:MM or HH:MM:SS format).
 	Time Time `yaml:"time" json:"time" default:""`
 
 	// Timezone specifies the timezone for the schedule.
 	Timezone Timezone `yaml:"timezone,omitempty" json:"timezone,omitempty" default:"UTC"`
+
+	// Day specifies the day of the month (1-31).
+	Day int `yaml:"day" json:"day" default:"1" jsonschema:"minimum=1,maximum=31,example=1"`
 }
 
 // DurationJobConfig defines configuration for a duration-based schedule.
 type DurationJobConfig struct {
-	// Duration specifies the interval duration (e.g., "5s", "1h", "30m").
-	Duration Duration `yaml:"duration" json:"duration" jsonschema:"example=1h"`
-
 	// StartTime specifies when to start the schedule (optional).
 	StartTime RFC3339Time `yaml:"start_time,omitempty" json:"start_time,omitempty"`
+
+	// Duration specifies the interval duration (e.g., "5s", "1h", "30m").
+	Duration Duration `yaml:"duration" json:"duration" jsonschema:"example=1h"`
 }
 
 // OneTimeJobConfig defines configuration for a one-time schedule.
