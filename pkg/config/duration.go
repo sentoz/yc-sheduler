@@ -33,7 +33,7 @@ func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // MarshalYAML implements yaml.Marshaler interface.
 func (d Duration) MarshalYAML() (interface{}, error) {
-	return d.Duration.String(), nil
+	return d.String(), nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler interface.
@@ -54,7 +54,7 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON implements json.Marshaler interface.
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Duration.String())
+	return json.Marshal(d.String())
 }
 
 // JSONSchema returns the JSON schema for Duration type.

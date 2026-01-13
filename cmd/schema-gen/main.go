@@ -46,7 +46,7 @@ func main() {
 	if outFile != "" {
 		// Create output directory if needed
 		if dir := filepath.Dir(outFile); dir != "" {
-			if err := os.MkdirAll(dir, 0o755); err != nil {
+			if err := os.MkdirAll(dir, 0o750); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: failed to create output directory: %v\n", err)
 				os.Exit(1)
 			}
@@ -57,7 +57,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: failed to create output file: %v\n", err)
 			os.Exit(1)
 		}
-		defer f.Close()
+		defer func() {
+			if cerr := f.Close(); cerr != nil {
+				fmt.Fprintf(os.Stderr, "Error: failed to close output file: %v\n", cerr)
+			}
+		}()
 		output = f
 	} else {
 		output = os.Stdout
