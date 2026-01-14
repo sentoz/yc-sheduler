@@ -1,7 +1,8 @@
 {
   "go.lintTool": "golangci-lint",
   "go.lintFlags": [
-    "--fast"
+    "--fast-only",
+    "--output.text.print-issued-lines=false"
   ],
   "go.testEnvFile": "${workspaceFolder}/.env",
   "cSpell.ignorePaths": [

@@ -12,6 +12,14 @@
 #
 # For more information, see: https://json-schema.org/
 
+# Global configuration options
+timezone: Europe/Moscow              # Timezone for schedules (default: system timezone)
+max_concurrent_jobs: 5               # Maximum concurrent job executions (default: 5)
+validation_interval: 10m              # State validator check interval (default: 10m)
+shutdown_timeout: 5m                  # Graceful shutdown timeout (default: 5m)
+metrics_enabled: false                # Enable Prometheus metrics HTTP server (default: false)
+metrics_port: 9090                    # Port for metrics server (default: 9090)
+
 schedules:
   # Example: Daily schedule to start a VM at 9:00 AM
   - name: vm-production-start

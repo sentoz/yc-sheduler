@@ -5,13 +5,13 @@
   "$defs": {
     "ActionConfig": {
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enabled indicates whether this action is enabled."
-        },
         "time": {
           "$ref": "#/$defs/Time",
           "description": "Time specifies the time to perform the action (for time-based schedules)."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enabled indicates whether this action is enabled."
         }
       },
       "additionalProperties": false,
@@ -49,6 +49,34 @@
           "type": "array",
           "minItems": 1,
           "description": "Schedules contains all scheduled tasks."
+        },
+        "metrics_enabled": {
+          "type": "boolean",
+          "description": "MetricsEnabled toggles Prometheus metrics HTTP server.",
+          "default": false
+        },
+        "metrics_port": {
+          "type": "integer",
+          "description": "MetricsPort defines the port for the metrics HTTP server.",
+          "default": 9090
+        },
+        "validation_interval": {
+          "$ref": "#/$defs/Duration",
+          "description": "ValidationInterval defines how often the state validator runs."
+        },
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for schedules (IANA timezone name).\nIf empty, system timezone is used."
+        },
+        "max_concurrent_jobs": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "MaxConcurrentJobs limits the number of concurrent job executions.",
+          "default": 5
+        },
+        "shutdown_timeout": {
+          "$ref": "#/$defs/Duration",
+          "description": "ShutdownTimeout defines the timeout for graceful shutdown."
         }
       },
       "additionalProperties": false,
@@ -121,13 +149,13 @@
     },
     "DurationJobConfig": {
       "properties": {
-        "duration": {
-          "$ref": "#/$defs/Duration",
-          "description": "Duration specifies the interval duration (e.g., \"5s\", \"1h\", \"30m\")."
-        },
         "start_time": {
           "$ref": "#/$defs/RFC3339Time",
           "description": "StartTime specifies when to start the schedule (optional)."
+        },
+        "duration": {
+          "$ref": "#/$defs/Duration",
+          "description": "Duration specifies the interval duration (e.g., \"5s\", \"1h\", \"30m\")."
         }
       },
       "additionalProperties": false,
@@ -139,6 +167,14 @@
     },
     "MonthlyJobConfig": {
       "properties": {
+        "time": {
+          "$ref": "#/$defs/Time",
+          "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
+        },
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for the schedule."
+        },
         "day": {
           "type": "integer",
           "maximum": 31,
@@ -147,21 +183,13 @@
           "examples": [
             1
           ]
-        },
-        "time": {
-          "$ref": "#/$defs/Time",
-          "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
-        },
-        "timezone": {
-          "$ref": "#/$defs/Timezone",
-          "description": "Timezone specifies the timezone for the schedule."
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "day",
-        "time"
+        "time",
+        "day"
       ],
       "description": "MonthlyJobConfig defines configuration for a monthly schedule."
     },
@@ -236,33 +264,6 @@
     },
     "Schedule": {
       "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Name is a unique identifier for the schedule.",
-          "examples": [
-            "vm-production-start"
-          ]
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "cron",
-            "daily",
-            "weekly",
-            "monthly",
-            "duration",
-            "one-time"
-          ],
-          "description": "Type specifies the schedule type (cron, daily, weekly, monthly, duration, one-time).",
-          "examples": [
-            "daily"
-          ]
-        },
-        "resource": {
-          "$ref": "#/$defs/Resource",
-          "description": "Resource defines the target resource to manage."
-        },
         "actions": {
           "$ref": "#/$defs/Actions",
           "description": "Actions defines what actions to perform at scheduled times."
@@ -290,15 +291,42 @@
         "one_time_job": {
           "$ref": "#/$defs/OneTimeJobConfig",
           "description": "OneTimeJob configuration (used when Type is \"one-time\")."
+        },
+        "resource": {
+          "$ref": "#/$defs/Resource",
+          "description": "Resource defines the target resource to manage."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name is a unique identifier for the schedule.",
+          "examples": [
+            "vm-production-start"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "cron",
+            "daily",
+            "weekly",
+            "monthly",
+            "duration",
+            "one-time"
+          ],
+          "description": "Type specifies the schedule type (cron, daily, weekly, monthly, duration, one-time).",
+          "examples": [
+            "daily"
+          ]
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "name",
-        "type",
+        "actions",
         "resource",
-        "actions"
+        "name",
+        "type"
       ],
       "description": "Schedule defines a scheduled task for managing cloud resources."
     },
@@ -325,6 +353,14 @@
     },
     "WeeklyJobConfig": {
       "properties": {
+        "time": {
+          "$ref": "#/$defs/Time",
+          "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
+        },
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for the schedule."
+        },
         "day": {
           "type": "integer",
           "maximum": 6,
@@ -333,21 +369,13 @@
           "examples": [
             1
           ]
-        },
-        "time": {
-          "$ref": "#/$defs/Time",
-          "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
-        },
-        "timezone": {
-          "$ref": "#/$defs/Timezone",
-          "description": "Timezone specifies the timezone for the schedule."
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "day",
-        "time"
+        "time",
+        "day"
       ],
       "description": "WeeklyJobConfig defines configuration for a weekly schedule."
     }

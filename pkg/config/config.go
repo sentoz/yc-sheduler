@@ -4,6 +4,25 @@ package config
 type Config struct {
 	// Schedules contains all scheduled tasks.
 	Schedules []Schedule `yaml:"schedules" json:"schedules" jsonschema:"minItems=1"`
+
+	// MetricsEnabled toggles Prometheus metrics HTTP server.
+	MetricsEnabled bool `yaml:"metrics_enabled,omitempty" json:"metrics_enabled,omitempty" jsonschema:"default=false"`
+
+	// MetricsPort defines the port for the metrics HTTP server.
+	MetricsPort int `yaml:"metrics_port,omitempty" json:"metrics_port,omitempty" jsonschema:"default=9090"`
+
+	// ValidationInterval defines how often the state validator runs.
+	ValidationInterval Duration `yaml:"validation_interval,omitempty" json:"validation_interval,omitempty" jsonschema:"example=10m"`
+
+	// Timezone specifies the timezone for schedules (IANA timezone name).
+	// If empty, system timezone is used.
+	Timezone Timezone `yaml:"timezone,omitempty" json:"timezone,omitempty" jsonschema:"example=Europe/Moscow"`
+
+	// MaxConcurrentJobs limits the number of concurrent job executions.
+	MaxConcurrentJobs int `yaml:"max_concurrent_jobs,omitempty" json:"max_concurrent_jobs,omitempty" jsonschema:"default=5,minimum=1"`
+
+	// ShutdownTimeout defines the timeout for graceful shutdown.
+	ShutdownTimeout Duration `yaml:"shutdown_timeout,omitempty" json:"shutdown_timeout,omitempty" jsonschema:"example=5m"`
 }
 
 // Schedule defines a scheduled task for managing cloud resources.
