@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	iconfig "github.com/woozymasta/yc-scheduler/internal/config"
+	"github.com/woozymasta/yc-scheduler/internal/executor"
+	"github.com/woozymasta/yc-scheduler/internal/logger"
 	"github.com/woozymasta/yc-scheduler/internal/metrics"
 	"github.com/woozymasta/yc-scheduler/internal/scheduler"
+	"github.com/woozymasta/yc-scheduler/internal/signals"
 	"github.com/woozymasta/yc-scheduler/internal/validator"
 	"github.com/woozymasta/yc-scheduler/internal/yc"
 	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
@@ -30,9 +29,11 @@ func main() {
 func run() error {
 	var opts struct {
 		Config string `short:"c" long:"config" required:"true" description:"Path to configuration file (YAML or JSON)"`
-		Token  string `short:"t" long:"token" description:"Yandex Cloud OAuth/IAM token (discouraged; prefer --sa-key)"`
-		SaKey  string `long:"sa-key" description:"Path to Yandex Cloud service account key JSON file (preferred)"`
+		Token  string `short:"t" long:"token" env:"YC_TOKEN" description:"Yandex Cloud OAuth/IAM token (discouraged; prefer --sa-key)"`
+		SaKey  string `long:"sa-key" env:"YC_SA_KEY_FILE" description:"Path to Yandex Cloud service account key JSON file (preferred)"`
 		DryRun bool   `short:"n" long:"dry-run" description:"Dry run mode: log planned actions without calling YC APIs"`
+
+		logger.Logger `group:"Logging"`
 	}
 
 	if _, err := flags.Parse(&opts); err != nil {
@@ -44,33 +45,24 @@ func run() error {
 		return err
 	}
 
-	setupLogger()
+	opts.Logger.Setup()
+
+	log.Debug().
+		Str("config_path", opts.Config).
+		Bool("dry_run", opts.DryRun).
+		Msg("CLI options parsed")
 
 	cfg, err := iconfig.Load(context.Background(), opts.Config)
 	if err != nil {
 		return fmt.Errorf("yc-scheduler: load config: %w", err)
 	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := signals.WithSignalContext(context.Background())
 	defer cancel()
 
-	saKey := opts.SaKey
-	if saKey == "" {
-		// Try common environment variables for service account key file.
-		saKey = os.Getenv("YC_SERVICE_ACCOUNT_KEY_FILE")
-		if saKey == "" {
-			saKey = os.Getenv("YC_SA_KEY_FILE")
-		}
-	}
-
-	token := opts.Token
-	if token == "" {
-		token = os.Getenv("YC_TOKEN")
-	}
-
 	auth := yc.AuthConfig{
-		ServiceAccountKeyFile: saKey,
-		Token:                 token,
+		ServiceAccountKeyFile: opts.SaKey,
+		Token:                 opts.Token,
 	}
 
 	client, err := yc.NewClient(ctx, auth)
@@ -78,55 +70,38 @@ func run() error {
 		return fmt.Errorf("yc-scheduler: create YC client: %w", err)
 	}
 
-	shutdownTimeout := 5 * time.Minute
-	if cfg.ShutdownTimeout.Duration > 0 {
-		shutdownTimeout = cfg.ShutdownTimeout.Std()
+	// Validate credentials before proceeding
+	log.Info().Msg("Validating Yandex Cloud credentials")
+	if err := client.ValidateCredentials(ctx); err != nil {
+		return fmt.Errorf("yc-scheduler: credentials validation failed: %w", err)
 	}
+	log.Info().Msg("Credentials validated successfully")
 
-	defer func() {
-		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)
-		defer cancelShutdown()
-		if err := client.Shutdown(shutdownCtx); err != nil {
-			log.Warn().Err(err).Msg("Failed to shutdown YC client")
-		}
-	}()
+	defer signals.GracefulShutdown(client, cfg.ShutdownTimeout.Std())
 
-	timezone := ""
-	if cfg.Timezone != "" {
-		timezone = cfg.Timezone.String()
-	}
+	timezone := cfg.Timezone.String()
 
-	maxConcurrentJobs := cfg.MaxConcurrentJobs
-	if maxConcurrentJobs <= 0 {
-		maxConcurrentJobs = 5
-	}
-
-	sched, err := scheduler.New(timezone, maxConcurrentJobs)
+	sched, err := scheduler.New(timezone, cfg.MaxConcurrentJobs)
 	if err != nil {
 		return fmt.Errorf("yc-scheduler: init scheduler: %w", err)
 	}
 
+	// Start HTTP server for metrics and health endpoints on metrics_port.
+	// Health endpoints are always available, metrics only if MetricsEnabled is true.
+	addr := fmt.Sprintf(":%d", cfg.MetricsPort)
+
 	if cfg.MetricsEnabled {
 		metrics.Init()
-		port := cfg.MetricsPort
-		if port == 0 {
-			port = 9090
-		}
-		addr := fmt.Sprintf(":%d", port)
-		metrics.StartServer(ctx, addr)
 	}
+	metrics.StartServer(ctx, addr, cfg.MetricsEnabled)
 
 	if err := registerSchedules(sched, client, cfg, opts.DryRun); err != nil {
 		return err
 	}
 
-	// Start state validator with interval from config (default 10 minutes).
-	validationInterval := 10 * time.Minute
-	if cfg.ValidationInterval.Duration > 0 {
-		validationInterval = cfg.ValidationInterval.Std()
-	}
-	v := validator.New(client, cfg)
-	v.Start(ctx, validationInterval)
+	// Start state validator with interval from config.
+	v := validator.New(client, cfg, sched, opts.DryRun)
+	v.Start(ctx, cfg.ValidationInterval.Std())
 
 	log.Info().Msg("yc-scheduler started")
 	if err := sched.Start(ctx); err != nil {
@@ -137,168 +112,28 @@ func run() error {
 	return nil
 }
 
-func setupLogger() {
-	output := zerolog.ConsoleWriter{
-		Out:        os.Stderr,
-		TimeFormat: time.RFC3339,
-	}
-	log.Logger = zerolog.New(output).With().Timestamp().Logger()
-}
-
 func registerSchedules(s *scheduler.Scheduler, client *yc.Client, cfg *pkgconfig.Config, dryRun bool) error {
 	for _, sch := range cfg.Schedules {
-		def, err := scheduler.ScheduleToJobDefinition(sch)
-		if err != nil {
-			return fmt.Errorf("register schedule %q: %w", sch.Name, err)
-		}
-
 		if sch.Actions.Start != nil && sch.Actions.Start.Enabled {
+			def, err := scheduler.ScheduleToJobDefinition(sch, sch.Actions.Start)
+			if err != nil {
+				return fmt.Errorf("register schedule %q start action: %w", sch.Name, err)
+			}
 			name := sch.Name + ":start"
-			if err := s.AddJob(def, name, makeExecutor(client, sch, "start", dryRun)); err != nil {
+			if err := s.AddJob(def, name, executor.Make(client, sch, "start", dryRun), ""); err != nil {
 				return err
 			}
 		}
 		if sch.Actions.Stop != nil && sch.Actions.Stop.Enabled {
-			name := sch.Name + ":stop"
-			if err := s.AddJob(def, name, makeExecutor(client, sch, "stop", dryRun)); err != nil {
-				return err
+			def, err := scheduler.ScheduleToJobDefinition(sch, sch.Actions.Stop)
+			if err != nil {
+				return fmt.Errorf("register schedule %q stop action: %w", sch.Name, err)
 			}
-		}
-		if sch.Actions.Restart != nil && sch.Actions.Restart.Enabled {
-			name := sch.Name + ":restart"
-			if err := s.AddJob(def, name, makeExecutor(client, sch, "restart", dryRun)); err != nil {
+			name := sch.Name + ":stop"
+			if err := s.AddJob(def, name, executor.Make(client, sch, "stop", dryRun), ""); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
-}
-
-func makeExecutor(client *yc.Client, sch pkgconfig.Schedule, action string, dryRun bool) func(context.Context) {
-	resource := sch.Resource
-
-	return func(ctx context.Context) {
-		if dryRun {
-			log.Info().
-				Str("schedule", sch.Name).
-				Str("resource_type", resource.Type).
-				Str("resource_id", resource.ID).
-				Str("action", action).
-				Msg("Dry-run: planned operation")
-			metrics.IncOperation(resource.Type, action, "dry_run")
-			return
-		}
-
-		switch resource.Type {
-		case "vm":
-			switch action {
-			case "start":
-				if err := client.StartInstance(ctx, resource.FolderID, resource.ID); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("VM operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			case "stop":
-				if err := client.StopInstance(ctx, resource.FolderID, resource.ID); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("VM operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			case "restart":
-				if err := client.RestartInstance(ctx, resource.FolderID, resource.ID); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("VM operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			}
-			metrics.IncOperation(resource.Type, action, "success")
-		case "k8s_node_group":
-			const desiredSize = int64(1)
-			switch action {
-			case "start":
-				if err := client.StartNodeGroup(ctx, resource.FolderID, resource.ID, desiredSize); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("Node group operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			case "stop":
-				if err := client.StopNodeGroup(ctx, resource.FolderID, resource.ID); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("Node group operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			case "restart":
-				if err := client.RestartNodeGroup(ctx, resource.FolderID, resource.ID, desiredSize); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("Node group operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			}
-			metrics.IncOperation(resource.Type, action, "success")
-		case "k8s_cluster":
-			switch action {
-			case "start":
-				if err := client.StartCluster(ctx, resource.FolderID, resource.ID); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("Cluster operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			case "stop":
-				if err := client.StopCluster(ctx, resource.FolderID, resource.ID); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("Cluster operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			case "restart":
-				if err := client.RestartCluster(ctx, resource.FolderID, resource.ID); err != nil {
-					log.Error().Err(err).
-						Str("resource_type", resource.Type).
-						Str("resource_id", resource.ID).
-						Str("action", action).
-						Msg("Cluster operation failed")
-					metrics.IncOperation(resource.Type, action, "error")
-					return
-				}
-			}
-			metrics.IncOperation(resource.Type, action, "success")
-		default:
-			log.Error().
-				Str("resource_type", resource.Type).
-				Str("schedule", sch.Name).
-				Msg("Unsupported resource type")
-			metrics.IncOperation(resource.Type, action, "error")
-		}
-	}
 }

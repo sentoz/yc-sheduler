@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
+	"github.com/rs/zerolog/log"
 
 	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
 )
@@ -42,12 +43,21 @@ func New(timezone string, maxConcurrentJobs int) (*Scheduler, error) {
 		return nil, fmt.Errorf("scheduler: new: %w", err)
 	}
 
+	log.Info().
+		Str("timezone", location.String()).
+		Int("max_concurrent_jobs", maxConcurrentJobs).
+		Msg("Scheduler initialized")
+
 	return &Scheduler{s: s}, nil
 }
 
 // AddJob registers a new job in the underlying scheduler with the given
 // definition and name.
-func (s *Scheduler) AddJob(def gocron.JobDefinition, name string, fn func(context.Context)) error {
+// The job function is a simple func() without parameters to avoid reflection
+// mismatches with gocron's task parameter handling.
+// The timezone parameter is ignored as gocron v2 doesn't support per-job timezones.
+// All jobs use the scheduler's timezone (set during initialization).
+func (s *Scheduler) AddJob(def gocron.JobDefinition, name string, fn func(), timezone string) error {
 	if s == nil || s.s == nil {
 		return fmt.Errorf("scheduler: not initialized")
 	}
@@ -56,6 +66,10 @@ func (s *Scheduler) AddJob(def gocron.JobDefinition, name string, fn func(contex
 	if err != nil {
 		return fmt.Errorf("scheduler: add job %q: %w", name, err)
 	}
+
+	log.Debug().
+		Str("job_name", name).
+		Msg("Scheduler job registered")
 
 	return nil
 }
@@ -68,8 +82,12 @@ func (s *Scheduler) Start(ctx context.Context) error {
 
 	s.s.Start()
 
+	log.Info().Msg("Scheduler event loop started")
+
 	<-ctx.Done()
 	s.s.Shutdown()
+
+	log.Info().Msg("Scheduler shutdown completed")
 
 	return nil
 }
@@ -82,62 +100,93 @@ func (s *Scheduler) Stop() {
 	s.s.Shutdown()
 }
 
-// ScheduleToJobDefinition converts a configuration schedule into a
-// gocron.JobDefinition.
-func ScheduleToJobDefinition(sch pkgconfig.Schedule) (gocron.JobDefinition, error) {
+// AddOneTimeJob adds a one-time job that will execute immediately.
+// The job function is a simple func() without parameters.
+func (s *Scheduler) AddOneTimeJob(name string, fn func()) error {
+	if s == nil || s.s == nil {
+		return fmt.Errorf("scheduler: not initialized")
+	}
+
+	_, err := s.s.NewJob(
+		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+		gocron.NewTask(fn),
+		gocron.WithName(name),
+	)
+	if err != nil {
+		return fmt.Errorf("scheduler: add one-time job %q: %w", name, err)
+	}
+
+	log.Info().
+		Str("job_name", name).
+		Msg("One-time job registered")
+
+	return nil
+}
+
+// ScheduleToJobDefinition converts a configuration schedule and action into a
+// gocron.JobDefinition. The action config contains the schedule-specific parameters.
+func ScheduleToJobDefinition(sch pkgconfig.Schedule, action *pkgconfig.ActionConfig) (gocron.JobDefinition, error) {
 	switch sch.Type {
 	case "cron":
-		if sch.CronJob == nil {
-			return nil, fmt.Errorf("scheduler: cron schedule %q missing cron_job", sch.Name)
+		if action.Crontab.String() == "" {
+			return nil, fmt.Errorf("scheduler: cron schedule %q missing crontab in action", sch.Name)
 		}
-		return gocron.CronJob(sch.CronJob.Crontab.String(), false), nil
+		return gocron.CronJob(action.Crontab.String(), false), nil
 	case "daily":
-		if sch.DailyJob == nil {
-			return nil, fmt.Errorf("scheduler: daily schedule %q missing daily_job", sch.Name)
+		if action.Time == "" {
+			return nil, fmt.Errorf("scheduler: daily schedule %q missing time in action", sch.Name)
 		}
-		at, err := parseTime(sch.DailyJob.Time)
+		at, err := parseTime(pkgconfig.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: daily schedule %q: %w", sch.Name, err)
 		}
 		return gocron.DailyJob(1, at), nil
 	case "weekly":
-		if sch.WeeklyJob == nil {
-			return nil, fmt.Errorf("scheduler: weekly schedule %q missing weekly_job", sch.Name)
+		if action.Time == "" {
+			return nil, fmt.Errorf("scheduler: weekly schedule %q missing time in action", sch.Name)
 		}
-		at, err := parseTime(sch.WeeklyJob.Time)
+		if action.Day < 0 || action.Day > 6 {
+			return nil, fmt.Errorf("scheduler: weekly schedule %q missing or invalid day in action (got %d, expected 0-6)", sch.Name, action.Day)
+		}
+		at, err := parseTime(pkgconfig.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: weekly schedule %q: %w", sch.Name, err)
 		}
-		weekday, err := parseWeekday(sch.WeeklyJob.Day)
+		weekday, err := parseWeekday(action.Day)
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: weekly schedule %q: %w", sch.Name, err)
 		}
 		return gocron.WeeklyJob(1, weekday, at), nil
 	case "monthly":
-		if sch.MonthlyJob == nil {
-			return nil, fmt.Errorf("scheduler: monthly schedule %q missing monthly_job", sch.Name)
+		if action.Time == "" {
+			return nil, fmt.Errorf("scheduler: monthly schedule %q missing time in action", sch.Name)
 		}
-		at, err := parseTime(sch.MonthlyJob.Time)
+		if action.Day < 1 || action.Day > 31 {
+			return nil, fmt.Errorf("scheduler: monthly schedule %q missing or invalid day in action (got %d, expected 1-31)", sch.Name, action.Day)
+		}
+		at, err := parseTime(pkgconfig.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: monthly schedule %q: %w", sch.Name, err)
 		}
-		day, err := parseDayOfMonth(sch.MonthlyJob.Day)
+		day, err := parseDayOfMonth(action.Day)
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: monthly schedule %q: %w", sch.Name, err)
 		}
 		return gocron.MonthlyJob(1, gocron.NewDaysOfTheMonth(day), at), nil
 	case "duration":
-		if sch.DurationJob == nil {
-			return nil, fmt.Errorf("scheduler: duration schedule %q missing duration_job", sch.Name)
+		if action.Duration.Duration == 0 {
+			return nil, fmt.Errorf("scheduler: duration schedule %q missing duration in action", sch.Name)
 		}
-		return gocron.DurationJob(sch.DurationJob.Duration.Std()), nil
+		return gocron.DurationJob(action.Duration.Std()), nil
 	case "one-time":
-		if sch.OneTimeJob == nil {
-			return nil, fmt.Errorf("scheduler: one-time schedule %q missing one_time_job", sch.Name)
+		if action.Time == "" {
+			return nil, fmt.Errorf("scheduler: one-time schedule %q missing time in action", sch.Name)
 		}
-		t, err := sch.OneTimeJob.Time.Time()
+		// Parse RFC3339 time
+		rfcTime := pkgconfig.RFC3339Time(action.Time)
+		t, err := rfcTime.Time()
 		if err != nil {
-			return nil, fmt.Errorf("scheduler: one-time schedule %q: %w", sch.Name, err)
+			return nil, fmt.Errorf("scheduler: one-time schedule %q: invalid RFC3339 time %q: %w", sch.Name, action.Time, err)
 		}
 		return gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(t)), nil
 	default:

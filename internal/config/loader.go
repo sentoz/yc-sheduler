@@ -1,7 +1,6 @@
 package config
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,10 +8,13 @@ import (
 	"os"
 	"sync"
 
+	"github.com/creasty/defaults"
+	"github.com/rs/zerolog/log"
 	jschema "github.com/santhosh-tekuri/jsonschema/v6"
 	jamle "github.com/woozymasta/jamle"
 
 	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
+	"github.com/woozymasta/yc-scheduler/static"
 )
 
 var (
@@ -24,16 +26,23 @@ var (
 // getSchema lazily compiles the embedded JSON schema and returns it.
 func getSchema() (*jschema.Schema, error) {
 	schemaOnce.Do(func() {
-		if len(schemaData) == 0 {
+		if len(static.ConfigSchema) == 0 {
 			schemaErr = ErrSchemaLoad
 			return
 		}
-
 		compiler := jschema.NewCompiler()
 
 		const schemaURL = "embedded://config-schema"
 
-		if err := compiler.AddResource(schemaURL, bytes.NewReader(schemaData)); err != nil {
+		// static.ConfigSchema contains raw JSON bytes. AddResource expects a valid
+		// JSON value (map, slice, etc.), not raw []byte. We need to unmarshal it first.
+		var schemaDoc interface{}
+		if err := json.Unmarshal(static.ConfigSchema, &schemaDoc); err != nil {
+			schemaErr = fmt.Errorf("%w: unmarshal schema: %v", ErrSchemaLoad, err)
+			return
+		}
+
+		if err := compiler.AddResource(schemaURL, schemaDoc); err != nil {
 			schemaErr = fmt.Errorf("%w: add resource: %v", ErrSchemaLoad, err)
 			return
 		}
@@ -77,9 +86,19 @@ func Load(_ context.Context, path string) (*pkgconfig.Config, error) {
 		return nil, fmt.Errorf("%w: decode: %v", ErrInvalidConfig, err)
 	}
 
+	// Apply default values for fields that weren't set in the config.
+	if err := defaults.Set(&cfg); err != nil {
+		return nil, fmt.Errorf("%w: apply defaults: %v", ErrInvalidConfig, err)
+	}
+
 	if err := validate(&cfg); err != nil {
 		return nil, err
 	}
+
+	log.Info().
+		Str("config_path", path).
+		Int("schedules", len(cfg.Schedules)).
+		Msg("Configuration loaded and validated")
 
 	return &cfg, nil
 }
@@ -92,12 +111,19 @@ func validate(cfg *pkgconfig.Config) error {
 		return err
 	}
 
+	// Marshal config to JSON, then unmarshal to interface{} so Validate receives
+	// a valid JSON value (map/slice), not *bytes.Reader.
 	data, err := json.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("%w: marshal for validation: %v", ErrInvalidConfig, err)
 	}
 
-	if err := schema.Validate(bytes.NewReader(data)); err != nil {
+	var cfgDoc interface{}
+	if err := json.Unmarshal(data, &cfgDoc); err != nil {
+		return fmt.Errorf("%w: unmarshal for validation: %v", ErrInvalidConfig, err)
+	}
+
+	if err := schema.Validate(cfgDoc); err != nil {
 		return fmt.Errorf("%w: %v", ErrSchemaValidation, err)
 	}
 

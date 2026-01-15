@@ -7,6 +7,10 @@ var (
 	// are provided (neither service account key nor token).
 	ErrMissingCredentials = errors.New("missing Yandex Cloud credentials")
 
+	// ErrInvalidCredentials is returned when credentials are provided but
+	// are invalid or expired.
+	ErrInvalidCredentials = errors.New("invalid or expired Yandex Cloud credentials")
+
 	// ErrInstanceNotFound is returned when a requested compute instance
 	// cannot be found in the specified folder.
 	ErrInstanceNotFound = errors.New("instance not found")

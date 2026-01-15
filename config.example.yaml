@@ -13,12 +13,12 @@
 # For more information, see: https://json-schema.org/
 
 # Global configuration options
-timezone: Europe/Moscow              # Timezone for schedules (default: system timezone)
-max_concurrent_jobs: 5               # Maximum concurrent job executions (default: 5)
-validation_interval: 10m              # State validator check interval (default: 10m)
-shutdown_timeout: 5m                  # Graceful shutdown timeout (default: 5m)
-metrics_enabled: false                # Enable Prometheus metrics HTTP server (default: false)
-metrics_port: 9090                    # Port for metrics server (default: 9090)
+timezone: Europe/Moscow # Timezone for schedules (default: system timezone)
+max_concurrent_jobs: 5 # Maximum concurrent job executions (default: 5)
+validation_interval: 10m # State validator check interval (default: 10m)
+shutdown_timeout: 5m # Graceful shutdown timeout (default: 5m)
+metrics_enabled: false # Enable Prometheus metrics HTTP server (default: false)
+metrics_port: 9090 # Port for metrics server (default: 9090)
 
 schedules:
   # Example: Daily schedule to start a VM at 9:00 AM
@@ -34,9 +34,6 @@ schedules:
         time: 09:00
       stop:
         enabled: false
-    daily_job:
-      time: 09:00
-      timezone: Europe/Moscow
 
   # Example: Cron schedule to stop a VM every day at 18:00
   - name: vm-production-stop
@@ -48,25 +45,20 @@ schedules:
     actions:
       stop:
         enabled: true
-    cron_job:
-      crontab: 0 18 * * *
-      timezone: Europe/Moscow
+        crontab: 0 18 * * *
 
-  # Example: Weekly schedule to restart a VM every Monday at 08:00
-  - name: vm-weekly-restart
+  # Example: Weekly schedule to stop a VM every Monday at 08:00
+  - name: vm-weekly-stop
     type: weekly
     resource:
       type: vm
       id: fhm0987654321fedcba
       folder_id: b1g1234567890abcdef
     actions:
-      restart:
+      stop:
         enabled: true
+        day: 1 # Monday (0=Sunday, 1=Monday, ..., 6=Saturday)
         time: 08:00
-    weekly_job:
-      day: 1  # Monday (0=Sunday, 1=Monday, ..., 6=Saturday)
-      time: 08:00
-      timezone: UTC
 
   # Example: Monthly schedule to start a VM on the 1st day of each month
   - name: vm-monthly-start
@@ -78,25 +70,20 @@ schedules:
     actions:
       start:
         enabled: true
+        day: 1
         time: 00:00
-    monthly_job:
-      day: 1
-      time: 00:00
-      timezone: UTC
 
   # Example: Duration-based schedule (every 2 hours)
-  - name: vm-periodic-check
+  - name: vm-periodic-start
     type: duration
     resource:
       type: vm
       id: fhm1111111111111111
       folder_id: b1g1234567890abcdef
     actions:
-      restart:
+      start:
         enabled: true
-    duration_job:
-      duration: 2h
-      # Optional: start_time: 2024-01-01T00:00:00Z
+        duration: 2h
 
   # Example: One-time schedule
   - name: vm-onetime-maintenance
@@ -108,25 +95,10 @@ schedules:
     actions:
       stop:
         enabled: true
-    one_time_job:
-      time: 2024-12-31T23:59:59Z
-      timezone: UTC
-
-  # Example: Kubernetes Node Group schedule
-  - name: k8s-node-group-scale-down
-    type: daily
-    resource:
-      type: k8s_node_group
-      id: cat1234567890abcdef
-      folder_id: b1g1234567890abcdef
-    actions:
-      stop:
-        enabled: true
-    daily_job:
-      time: 20:00
-      timezone: Europe/Moscow
+        time: 2024-12-31T23:59:59Z
 
   # Example: Kubernetes Cluster schedule
+  # Note: Each action can have its own schedule parameters
   - name: k8s-cluster-maintenance
     type: weekly
     resource:
@@ -134,9 +106,11 @@ schedules:
       id: catabcdef1234567890
       folder_id: b1g1234567890abcdef
     actions:
-      restart:
+      stop:
         enabled: true
-    weekly_job:
-      day: 0  # Sunday
-      time: 02:00
-      timezone: UTC
+        day: 0 # Sunday
+        time: 02:00
+      start:
+        enabled: true
+        day: 1 # Monday
+        time: 02:15

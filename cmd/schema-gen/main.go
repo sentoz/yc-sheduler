@@ -37,7 +37,9 @@ func main() {
 	schema := r.Reflect(new(config.Config))
 
 	// Set schema metadata
-	schema.Version = "https://json-schema.org/draft/2020-12/schema"
+	// Use draft-07 which is supported by github.com/santhosh-tekuri/jsonschema/v6.
+	// Newer drafts like 2020-12 are not supported and cause metaschema validation errors.
+	schema.Version = "http://json-schema.org/draft-07/schema#"
 	schema.Title = "YC Scheduler Configuration"
 	schema.Description = "Configuration schema for YC Scheduler application"
 

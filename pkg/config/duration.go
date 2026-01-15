@@ -54,7 +54,35 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON implements json.Marshaler interface.
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.String())
+	return json.Marshal(d.formatCompact())
+}
+
+// formatCompact formats duration in compact format (e.g., "10m" instead of "10m0s").
+func (d Duration) formatCompact() string {
+	if d.Duration == 0 {
+		return "0s"
+	}
+
+	var parts []string
+	hours := int(d.Duration.Hours())
+	minutes := int(d.Duration.Minutes()) % 60
+	seconds := int(d.Duration.Seconds()) % 60
+
+	if hours > 0 {
+		parts = append(parts, fmt.Sprintf("%dh", hours))
+	}
+	if minutes > 0 {
+		parts = append(parts, fmt.Sprintf("%dm", minutes))
+	}
+	if seconds > 0 || len(parts) == 0 {
+		parts = append(parts, fmt.Sprintf("%ds", seconds))
+	}
+
+	result := ""
+	for _, part := range parts {
+		result += part
+	}
+	return result
 }
 
 // JSONSchema returns the JSON schema for Duration type.
@@ -62,8 +90,8 @@ func (Duration) JSONSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Title: "Human readable duration",
 		Type:  "string",
-		// Keep "duration" for tools; pattern clarifies allowed units.
-		Format: "duration",
+		// Don't use format: "duration" as it expects ISO 8601 format (P...),
+		// but we use Go-style format (10m, 1h, etc.). Pattern validates our format.
 		Description: "Duration string: a positive sequence of <number><unit> tokens. " +
 			"Units:\n" +
 			"* `s` — seconds\n" +

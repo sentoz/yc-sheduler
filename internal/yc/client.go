@@ -4,21 +4,19 @@ package yc
 import (
 	"context"
 	"fmt"
-	"sync"
+	"strings"
 
-	k8spb "github.com/yandex-cloud/go-genproto/yandex/cloud/k8s/v1"
+	computepb "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 	ycsdk "github.com/yandex-cloud/go-sdk/v2"
 	"github.com/yandex-cloud/go-sdk/v2/credentials"
 	"github.com/yandex-cloud/go-sdk/v2/pkg/options"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // Client wraps Yandex Cloud SDK and provides a narrow interface for
 // higher-level components such as the scheduler.
 type Client struct {
 	sdk *ycsdk.SDK
-
-	mu              sync.RWMutex
-	nodeGroupPolicy map[string]*k8spb.ScalePolicy
 }
 
 // AuthConfig describes how to authenticate against Yandex Cloud APIs.
@@ -58,9 +56,51 @@ func NewClient(ctx context.Context, auth AuthConfig) (*Client, error) {
 	}
 
 	return &Client{
-		sdk:             sdk,
-		nodeGroupPolicy: make(map[string]*k8spb.ScalePolicy),
+		sdk: sdk,
 	}, nil
+}
+
+// ValidateCredentials checks if the current credentials are valid by attempting
+// to get a connection to Compute service, which requires authentication. This verifies
+// that the token/SA key is valid and not expired.
+func (c *Client) ValidateCredentials(ctx context.Context) error {
+	if c == nil || c.sdk == nil {
+		return fmt.Errorf("yc: client is not initialized")
+	}
+
+	// Try to get a connection to Compute service, which requires authentication.
+	// GetConnection will attempt to obtain an IAM token using the provided credentials.
+	// If credentials are invalid or expired, this will fail.
+	// Use protoreflect.FullName as SDK v2 may require this format for endpoint resolution.
+	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.List")
+	conn, err := c.sdk.GetConnection(ctx, endpoint)
+	if err != nil {
+		return fmt.Errorf("yc: %w: %v", ErrInvalidCredentials, err)
+	}
+
+	// Make a lightweight API call to verify the connection actually works.
+	// We request an empty list from a non-existent folder, but the error should be
+	// about the folder not found or permission denied, not about authentication.
+	client := computepb.NewInstanceServiceClient(conn)
+	_, err = client.List(ctx, &computepb.ListInstancesRequest{
+		FolderId: "validation-check-folder-id",
+		PageSize: 1,
+	})
+	if err != nil {
+		// If error is about authentication/authorization, credentials are invalid.
+		// If error is about folder not found or permission denied, that's expected
+		// and credentials are valid (we just don't have access to that folder).
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "authentication") || strings.Contains(errStr, "authorization") ||
+			strings.Contains(errStr, "unauthorized") || strings.Contains(errStr, "invalid token") ||
+			strings.Contains(errStr, "expired") || strings.Contains(errStr, "token") {
+			return fmt.Errorf("yc: %w: %v", ErrInvalidCredentials, err)
+		}
+		// Any other error (like "folder not found", "permission denied" for that folder)
+		// means credentials are valid, we just don't have access to that specific resource.
+	}
+
+	return nil
 }
 
 // Shutdown gracefully shuts down the underlying SDK, releasing any

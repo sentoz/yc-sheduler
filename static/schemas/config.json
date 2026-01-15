@@ -1,17 +1,32 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/woozymasta/yc-scheduler/pkg/config/config",
   "$ref": "#/$defs/Config",
   "$defs": {
     "ActionConfig": {
       "properties": {
-        "time": {
-          "$ref": "#/$defs/Time",
-          "description": "Time specifies the time to perform the action (for time-based schedules)."
-        },
         "enabled": {
           "type": "boolean",
           "description": "Enabled indicates whether this action is enabled."
+        },
+        "time": {
+          "type": "string",
+          "description": "Time specifies the time to perform the action.\nFor daily, weekly, monthly schedules: HH:MM or HH:MM:SS format (e.g., \"09:00\").\nFor one-time schedules: RFC3339 format (e.g., \"2024-12-31T23:59:59Z\")."
+        },
+        "crontab": {
+          "$ref": "#/$defs/Crontab",
+          "description": "Crontab is a cron expression for cron-based schedules (e.g., \"0 9 * * *\" for daily at 9 AM)."
+        },
+        "day": {
+          "type": "integer",
+          "description": "Day specifies the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday) for weekly schedules,\nor the day of the month (1-31) for monthly schedules.",
+          "examples": [
+            1
+          ]
+        },
+        "duration": {
+          "$ref": "#/$defs/Duration",
+          "description": "Duration specifies the interval duration for duration-based schedules (e.g., \"5s\", \"1h\", \"30m\")."
         }
       },
       "additionalProperties": false,
@@ -30,10 +45,6 @@
         "stop": {
           "$ref": "#/$defs/ActionConfig",
           "description": "Stop defines when to stop the resource."
-        },
-        "restart": {
-          "$ref": "#/$defs/ActionConfig",
-          "description": "Restart defines when to restart the resource."
         }
       },
       "additionalProperties": false,
@@ -91,10 +102,6 @@
         "crontab": {
           "$ref": "#/$defs/Crontab",
           "description": "Crontab is a cron expression (e.g., \"0 9 * * *\" for daily at 9 AM)."
-        },
-        "timezone": {
-          "$ref": "#/$defs/Timezone",
-          "description": "Timezone specifies the timezone for the cron schedule."
         }
       },
       "additionalProperties": false,
@@ -102,7 +109,7 @@
       "required": [
         "crontab"
       ],
-      "description": "CronJobConfig defines configuration for a cron-based schedule."
+      "description": "CronJobConfig defines configuration for a cron-based schedule.\nDeprecated: Parameters are now read from ActionConfig."
     },
     "Crontab": {
       "type": "string",
@@ -120,10 +127,6 @@
         "time": {
           "$ref": "#/$defs/Time",
           "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
-        },
-        "timezone": {
-          "$ref": "#/$defs/Timezone",
-          "description": "Timezone specifies the timezone for the schedule."
         }
       },
       "additionalProperties": false,
@@ -131,12 +134,11 @@
       "required": [
         "time"
       ],
-      "description": "DailyJobConfig defines configuration for a daily schedule."
+      "description": "DailyJobConfig defines configuration for a daily schedule.\nDeprecated: Parameters are now read from ActionConfig."
     },
     "Duration": {
       "type": "string",
       "pattern": "^(?:\\d+(?:\\.\\d+)?(?:s|m|h|d|w))+$",
-      "format": "duration",
       "title": "Human readable duration",
       "description": "Duration string: a positive sequence of \u003cnumber\u003e\u003cunit\u003e tokens. Units:\n* `s` — seconds\n* `m` — minutes (`60` s)\n* `h` — hours (`60` m)\n* `d` — days (`24` h)\n* `w` — weeks (`7` d)\n",
       "examples": [
@@ -163,17 +165,13 @@
       "required": [
         "duration"
       ],
-      "description": "DurationJobConfig defines configuration for a duration-based schedule."
+      "description": "DurationJobConfig defines configuration for a duration-based schedule.\nDeprecated: Parameters are now read from ActionConfig."
     },
     "MonthlyJobConfig": {
       "properties": {
         "time": {
           "$ref": "#/$defs/Time",
           "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
-        },
-        "timezone": {
-          "$ref": "#/$defs/Timezone",
-          "description": "Timezone specifies the timezone for the schedule."
         },
         "day": {
           "type": "integer",
@@ -191,17 +189,13 @@
         "time",
         "day"
       ],
-      "description": "MonthlyJobConfig defines configuration for a monthly schedule."
+      "description": "MonthlyJobConfig defines configuration for a monthly schedule.\nDeprecated: Parameters are now read from ActionConfig."
     },
     "OneTimeJobConfig": {
       "properties": {
         "time": {
           "$ref": "#/$defs/RFC3339Time",
           "description": "Time specifies when to execute the job (RFC3339 format)."
-        },
-        "timezone": {
-          "$ref": "#/$defs/Timezone",
-          "description": "Timezone specifies the timezone for the schedule."
         }
       },
       "additionalProperties": false,
@@ -209,7 +203,7 @@
       "required": [
         "time"
       ],
-      "description": "OneTimeJobConfig defines configuration for a one-time schedule."
+      "description": "OneTimeJobConfig defines configuration for a one-time schedule.\nDeprecated: Parameters are now read from ActionConfig."
     },
     "RFC3339Time": {
       "type": "string",
@@ -228,10 +222,9 @@
           "type": "string",
           "enum": [
             "vm",
-            "k8s_cluster",
-            "k8s_node_group"
+            "k8s_cluster"
           ],
-          "description": "Type specifies the resource type (vm, k8s_cluster, k8s_node_group).",
+          "description": "Type specifies the resource type (vm, k8s_cluster).",
           "examples": [
             "vm"
           ]
@@ -357,10 +350,6 @@
           "$ref": "#/$defs/Time",
           "description": "Time specifies the time of day (HH:MM or HH:MM:SS format)."
         },
-        "timezone": {
-          "$ref": "#/$defs/Timezone",
-          "description": "Timezone specifies the timezone for the schedule."
-        },
         "day": {
           "type": "integer",
           "maximum": 6,
@@ -377,7 +366,7 @@
         "time",
         "day"
       ],
-      "description": "WeeklyJobConfig defines configuration for a weekly schedule."
+      "description": "WeeklyJobConfig defines configuration for a weekly schedule.\nDeprecated: Parameters are now read from ActionConfig."
     }
   },
   "title": "YC Scheduler Configuration",

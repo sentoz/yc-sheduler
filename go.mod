@@ -3,16 +3,17 @@ module github.com/woozymasta/yc-scheduler
 go 1.25.5
 
 require (
-	github.com/go-co-op/gocron/v2 v2.12.1
+	github.com/creasty/defaults v1.8.0
+	github.com/go-co-op/gocron/v2 v2.19.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.34.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/woozymasta/jamle v0.1.3
-	github.com/yandex-cloud/go-genproto v0.43.0
-	github.com/yandex-cloud/go-sdk/v2 v2.37.0
-	google.golang.org/protobuf v1.36.8
+	github.com/yandex-cloud/go-genproto v0.44.0
+	github.com/yandex-cloud/go-sdk/v2 v2.39.0
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -27,7 +28,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
-	github.com/jonboulle/clockwork v0.4.0 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -41,7 +42,6 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect

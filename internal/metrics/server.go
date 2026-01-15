@@ -6,15 +6,19 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog/log"
 )
 
-// StartServer starts an HTTP server that exposes Prometheus metrics and
-// basic health-check endpoints. It runs the server in a separate goroutine
+// StartServer starts an HTTP server that exposes Prometheus metrics (if enabled)
+// and basic health-check endpoints. It runs the server in a separate goroutine
 // and returns the http.Server so that the caller can shut it down.
-func StartServer(ctx context.Context, addr string) *http.Server {
+// If metricsEnabled is false, only health endpoints are available.
+func StartServer(ctx context.Context, addr string, metricsEnabled bool) *http.Server {
 	mux := http.NewServeMux()
 
-	mux.Handle("/metrics", promhttp.Handler())
+	if metricsEnabled {
+		mux.Handle("/metrics", promhttp.Handler())
+	}
 	mux.HandleFunc("/health/live", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
@@ -35,17 +39,29 @@ func StartServer(ctx context.Context, addr string) *http.Server {
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		// If we cannot bind the port, just skip metrics server.
+		log.Warn().
+			Str("addr", addr).
+			Err(err).
+			Msg("Failed to bind metrics/health server listener, metrics will be disabled")
 		return srv
 	}
 
+	log.Info().
+		Str("addr", addr).
+		Bool("metrics_enabled", metricsEnabled).
+		Msg("Starting metrics and health HTTP server")
+
 	go func() {
-		_ = srv.Serve(ln)
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
+			log.Warn().Err(err).Msg("Metrics/health HTTP server stopped with error")
+		}
 	}()
 
 	go func() {
 		<-ctx.Done()
-		_ = srv.Shutdown(context.Background())
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Warn().Err(err).Msg("Failed to shutdown metrics/health HTTP server")
+		}
 	}()
 
 	return srv

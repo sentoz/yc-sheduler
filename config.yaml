@@ -1,0 +1,19 @@
+timezone: Europe/Moscow # IANA таймзона для расписаний (по умолчанию системная)
+max_concurrent_jobs: 5 # Максимальное количество одновременно выполняемых задач (>= 1, default: 5)
+validation_interval: 1m # Интервал проверки состояния ресурсов валидатором (Duration, default: 10m)
+shutdown_timeout: 5m # Таймаут на graceful shutdown (Duration, default: 5m)
+metrics_enabled: true # Включить HTTP-сервер метрик Prometheus (default: false)
+metrics_port: 9090 # Порт HTTP-сервера метрик и health-эндпоинтов (default: 9090)
+
+schedules:
+  - name: k8s-cluster-maintenance
+    type: weekly
+    resource:
+      type: k8s_cluster
+      id: catvdfg1ovkr3s7kfl07
+      folder_id: b1grecosu9ue4vfnaa9k
+    actions:
+      stop:
+        enabled: true
+        day: 4 # 0=Sunday, 1=Monday, ..., 6=Saturday
+        time: "16:00:22" # HH:MM или HH:MM:SS

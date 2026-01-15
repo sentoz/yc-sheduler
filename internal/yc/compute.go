@@ -8,6 +8,7 @@ import (
 	computepb "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 	operationpb "github.com/yandex-cloud/go-genproto/yandex/cloud/operation"
 	ycsdk "github.com/yandex-cloud/go-sdk/v2"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // StartInstance starts a compute instance in the specified folder.
@@ -56,16 +57,27 @@ func (c *Client) StopInstance(ctx context.Context, folderID, instanceID string) 
 	return waitOperation(ctx, c.sdk, op.GetId())
 }
 
-// RestartInstance restarts a compute instance by issuing a stop followed
-// by a start and waiting for both operations to complete.
-func (c *Client) RestartInstance(ctx context.Context, folderID, instanceID string) error {
-	if err := c.StopInstance(ctx, folderID, instanceID); err != nil {
-		return fmt.Errorf("yc: restart instance %s: stop: %w", instanceID, err)
+// GetInstance retrieves the current state of a compute instance.
+func (c *Client) GetInstance(ctx context.Context, folderID, instanceID string) (*computepb.Instance, error) {
+	if c == nil || c.sdk == nil {
+		return nil, fmt.Errorf("yc: client is not initialized")
 	}
-	if err := c.StartInstance(ctx, folderID, instanceID); err != nil {
-		return fmt.Errorf("yc: restart instance %s: start: %w", instanceID, err)
+
+	conn, err := c.sdk.GetConnection(ctx, computepb.InstanceService_Get_FullMethodName)
+	if err != nil {
+		return nil, fmt.Errorf("yc: get connection for get instance %s: %w", instanceID, err)
 	}
-	return nil
+
+	client := computepb.NewInstanceServiceClient(conn)
+
+	instance, err := client.Get(ctx, &computepb.GetInstanceRequest{
+		InstanceId: instanceID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("yc: get instance %s: %w", instanceID, err)
+	}
+
+	return instance, nil
 }
 
 // waitOperation polls the Operation service until the operation with the
@@ -75,7 +87,9 @@ func waitOperation(ctx context.Context, sdk *ycsdk.SDK, operationID string) erro
 		return fmt.Errorf("yc: %w: empty operation id", ErrOperationFailed)
 	}
 
-	conn, err := sdk.GetConnection(ctx, operationpb.OperationService_Get_FullMethodName)
+	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
+	endpoint := protoreflect.FullName("yandex.cloud.operation.OperationService.Get")
+	conn, err := sdk.GetConnection(ctx, endpoint)
 	if err != nil {
 		return fmt.Errorf("yc: get connection for operation %s: %w", operationID, err)
 	}
