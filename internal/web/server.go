@@ -1,44 +1,34 @@
-package metrics
+package web
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-
-	"github.com/woozymasta/yc-scheduler/internal/vars"
 )
 
 // StartServer starts an HTTP server that exposes Prometheus metrics (if enabled)
-// and basic health-check endpoints. It runs the server in a separate goroutine
-// and returns the http.Server so that the caller can shut it down.
+// and health-check endpoints. It runs the server in a separate goroutine
+// and handles graceful shutdown via context.
 // If metricsEnabled is false, only health endpoints are available.
-func StartServer(ctx context.Context, addr string, metricsEnabled bool) *http.Server {
+func StartServer(ctx context.Context, addr string, metricsEnabled bool) {
 	mux := http.NewServeMux()
 
+	// Register metrics endpoint if enabled (must be before /)
 	if metricsEnabled {
 		mux.Handle("/metrics", promhttp.Handler())
 	}
-	mux.HandleFunc("/health/live", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK"))
-	})
-	mux.HandleFunc("/health/ready", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("READY"))
-	})
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		buildInfo := vars.Info()
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(buildInfo); err != nil {
-			log.Warn().Err(err).Msg("Failed to encode build info")
-		}
-	})
+
+	// Register health endpoints
+	mux.HandleFunc("/health", HealthHandler)
+	mux.HandleFunc("/health/live", HealthHandler)
+	mux.HandleFunc("/health/ready", HealthHandler)
+
+	// Register build info endpoint (must be last as it matches all paths)
+	mux.HandleFunc("/", BuildInfoHandler)
 
 	srv := &http.Server{
 		Addr:              addr,
@@ -52,7 +42,7 @@ func StartServer(ctx context.Context, addr string, metricsEnabled bool) *http.Se
 			Str("addr", addr).
 			Err(err).
 			Msg("Failed to bind metrics/health server listener, metrics will be disabled")
-		return srv
+		return
 	}
 
 	log.Info().
@@ -72,6 +62,4 @@ func StartServer(ctx context.Context, addr string, metricsEnabled bool) *http.Se
 			log.Warn().Err(err).Msg("Failed to shutdown metrics/health HTTP server")
 		}
 	}()
-
-	return srv
 }
