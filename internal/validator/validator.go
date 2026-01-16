@@ -247,25 +247,6 @@ func (v *Validator) getLastExecutionTime(sch pkgconfig.Schedule, action *pkgconf
 			return time.Time{}, fmt.Errorf("cron schedule missing crontab")
 		}
 		return v.getLastCronTime(action.Crontab.String(), now, location)
-	case "duration":
-		if action.Duration.Duration == 0 {
-			return time.Time{}, fmt.Errorf("duration schedule missing duration")
-		}
-		return v.getLastDurationTime(action.Duration.Std(), now)
-	case "one-time":
-		if action.Time == "" {
-			return time.Time{}, fmt.Errorf("one-time schedule missing time")
-		}
-		rfcTime := pkgconfig.RFC3339Time(action.Time)
-		t, err := rfcTime.Time()
-		if err != nil {
-			return time.Time{}, fmt.Errorf("invalid RFC3339 time: %w", err)
-		}
-		// For one-time, return the time if it's in the past, otherwise return zero time
-		if t.Before(now) || t.Equal(now) {
-			return t, nil
-		}
-		return time.Time{}, fmt.Errorf("one-time schedule is in the future")
 	default:
 		return time.Time{}, fmt.Errorf("unknown schedule type: %s", sch.Type)
 	}
@@ -429,31 +410,6 @@ func (v *Validator) getLastCronTime(crontab string, now time.Time, location *tim
 	}
 
 	return time.Time{}, fmt.Errorf("failed to find last cron execution time")
-}
-
-// getLastDurationTime calculates the last duration-based execution time before now.
-func (v *Validator) getLastDurationTime(duration time.Duration, now time.Time) (time.Time, error) {
-	if duration <= 0 {
-		return time.Time{}, fmt.Errorf("invalid duration: %v", duration)
-	}
-
-	// For duration schedules, we assume they started at some point in the past.
-	// Calculate the last execution by finding the remainder when dividing now by duration.
-	// This is a simplification - in reality, we'd need to know when the schedule started.
-	// For validation purposes, we'll use a heuristic: assume it started at epoch or a reasonable start time.
-	// A better approach would be to track when schedules actually started, but for now we'll use a simple calculation.
-
-	// Use a reference point (e.g., start of current day) and calculate last execution
-	reference := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	elapsed := now.Sub(reference)
-	lastExecution := reference.Add(duration * time.Duration(elapsed/duration))
-
-	// If lastExecution is at or after now, go back one duration
-	if !lastExecution.Before(now) {
-		lastExecution = lastExecution.Add(-duration)
-	}
-
-	return lastExecution, nil
 }
 
 // getActualState retrieves the current state of the resource.

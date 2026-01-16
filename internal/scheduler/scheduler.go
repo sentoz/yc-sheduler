@@ -173,22 +173,6 @@ func ScheduleToJobDefinition(sch pkgconfig.Schedule, action *pkgconfig.ActionCon
 			return nil, fmt.Errorf("scheduler: monthly schedule %q: %w", sch.Name, err)
 		}
 		return gocron.MonthlyJob(1, gocron.NewDaysOfTheMonth(day), at), nil
-	case "duration":
-		if action.Duration.Duration == 0 {
-			return nil, fmt.Errorf("scheduler: duration schedule %q missing duration in action", sch.Name)
-		}
-		return gocron.DurationJob(action.Duration.Std()), nil
-	case "one-time":
-		if action.Time == "" {
-			return nil, fmt.Errorf("scheduler: one-time schedule %q missing time in action", sch.Name)
-		}
-		// Parse RFC3339 time
-		rfcTime := pkgconfig.RFC3339Time(action.Time)
-		t, err := rfcTime.Time()
-		if err != nil {
-			return nil, fmt.Errorf("scheduler: one-time schedule %q: invalid RFC3339 time %q: %w", sch.Name, action.Time, err)
-		}
-		return gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(t)), nil
 	default:
 		return nil, fmt.Errorf("scheduler: unknown schedule type %q", sch.Type)
 	}

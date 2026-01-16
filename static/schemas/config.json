@@ -11,7 +11,7 @@
         },
         "time": {
           "type": "string",
-          "description": "Time specifies the time to perform the action.\nFor daily, weekly, monthly schedules: HH:MM or HH:MM:SS format (e.g., \"09:00\").\nFor one-time schedules: RFC3339 format (e.g., \"2024-12-31T23:59:59Z\")."
+          "description": "Time specifies the time to perform the action.\nFor daily, weekly, monthly schedules: HH:MM or HH:MM:SS format (e.g., \"09:00\")."
         },
         "crontab": {
           "$ref": "#/$defs/Crontab",
@@ -23,10 +23,6 @@
           "examples": [
             1
           ]
-        },
-        "duration": {
-          "$ref": "#/$defs/Duration",
-          "description": "Duration specifies the interval duration for duration-based schedules (e.g., \"5s\", \"1h\", \"30m\")."
         }
       },
       "additionalProperties": false,
@@ -140,7 +136,7 @@
       "type": "string",
       "pattern": "^(?:\\d+(?:\\.\\d+)?(?:s|m|h|d|w))+$",
       "title": "Human readable duration",
-      "description": "Duration string: a positive sequence of \u003cnumber\u003e\u003cunit\u003e tokens. Units:\n* `s` — seconds\n* `m` — minutes (`60` s)\n* `h` — hours (`60` m)\n* `d` — days (`24` h)\n* `w` — weeks (`7` d)\n",
+      "description": "Duration string: a positive sequence of <number><unit> tokens. Units:\n* `s` \u2014 seconds\n* `m` \u2014 minutes (`60` s)\n* `h` \u2014 hours (`60` m)\n* `d` \u2014 days (`24` h)\n* `w` \u2014 weeks (`7` d)\n",
       "examples": [
         "2h45m",
         "1.5d",
@@ -148,24 +144,6 @@
         "90m",
         "18h"
       ]
-    },
-    "DurationJobConfig": {
-      "properties": {
-        "start_time": {
-          "$ref": "#/$defs/RFC3339Time",
-          "description": "StartTime specifies when to start the schedule (optional)."
-        },
-        "duration": {
-          "$ref": "#/$defs/Duration",
-          "description": "Duration specifies the interval duration (e.g., \"5s\", \"1h\", \"30m\")."
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "duration"
-      ],
-      "description": "DurationJobConfig defines configuration for a duration-based schedule.\nDeprecated: Parameters are now read from ActionConfig."
     },
     "MonthlyJobConfig": {
       "properties": {
@@ -190,20 +168,6 @@
         "day"
       ],
       "description": "MonthlyJobConfig defines configuration for a monthly schedule.\nDeprecated: Parameters are now read from ActionConfig."
-    },
-    "OneTimeJobConfig": {
-      "properties": {
-        "time": {
-          "$ref": "#/$defs/RFC3339Time",
-          "description": "Time specifies when to execute the job (RFC3339 format)."
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "time"
-      ],
-      "description": "OneTimeJobConfig defines configuration for a one-time schedule.\nDeprecated: Parameters are now read from ActionConfig."
     },
     "RFC3339Time": {
       "type": "string",
@@ -277,14 +241,6 @@
           "$ref": "#/$defs/MonthlyJobConfig",
           "description": "MonthlyJob configuration (used when Type is \"monthly\")."
         },
-        "duration_job": {
-          "$ref": "#/$defs/DurationJobConfig",
-          "description": "DurationJob configuration (used when Type is \"duration\")."
-        },
-        "one_time_job": {
-          "$ref": "#/$defs/OneTimeJobConfig",
-          "description": "OneTimeJob configuration (used when Type is \"one-time\")."
-        },
         "resource": {
           "$ref": "#/$defs/Resource",
           "description": "Resource defines the target resource to manage."
@@ -303,11 +259,9 @@
             "cron",
             "daily",
             "weekly",
-            "monthly",
-            "duration",
-            "one-time"
+            "monthly"
           ],
-          "description": "Type specifies the schedule type (cron, daily, weekly, monthly, duration, one-time).",
+          "description": "Type specifies the schedule type (cron, daily, weekly, monthly).",
           "examples": [
             "daily"
           ]

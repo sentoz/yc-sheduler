@@ -43,20 +43,14 @@ type Schedule struct {
 	// MonthlyJob configuration (used when Type is "monthly").
 	MonthlyJob *MonthlyJobConfig `yaml:"monthly_job,omitempty" json:"monthly_job,omitempty"`
 
-	// DurationJob configuration (used when Type is "duration").
-	DurationJob *DurationJobConfig `yaml:"duration_job,omitempty" json:"duration_job,omitempty"`
-
-	// OneTimeJob configuration (used when Type is "one-time").
-	OneTimeJob *OneTimeJobConfig `yaml:"one_time_job,omitempty" json:"one_time_job,omitempty"`
-
 	// Resource defines the target resource to manage.
 	Resource Resource `yaml:"resource" json:"resource"`
 
 	// Name is a unique identifier for the schedule.
 	Name string `yaml:"name" json:"name" default:"" jsonschema:"minLength=1,example=vm-production-start"`
 
-	// Type specifies the schedule type (cron, daily, weekly, monthly, duration, one-time).
-	Type string `yaml:"type" json:"type" default:"" jsonschema:"enum=cron,enum=daily,enum=weekly,enum=monthly,enum=duration,enum=one-time,example=daily"`
+	// Type specifies the schedule type (cron, daily, weekly, monthly).
+	Type string `yaml:"type" json:"type" default:"" jsonschema:"enum=cron,enum=daily,enum=weekly,enum=monthly,example=daily"`
 }
 
 // Resource defines a cloud resource to manage.
@@ -87,7 +81,6 @@ type ActionConfig struct {
 
 	// Time specifies the time to perform the action.
 	// For daily, weekly, monthly schedules: HH:MM or HH:MM:SS format (e.g., "09:00").
-	// For one-time schedules: RFC3339 format (e.g., "2024-12-31T23:59:59Z").
 	Time string `yaml:"time,omitempty" json:"time,omitempty"`
 
 	// Crontab is a cron expression for cron-based schedules (e.g., "0 9 * * *" for daily at 9 AM).
@@ -96,9 +89,6 @@ type ActionConfig struct {
 	// Day specifies the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday) for weekly schedules,
 	// or the day of the month (1-31) for monthly schedules.
 	Day int `yaml:"day,omitempty" json:"day,omitempty" jsonschema:"example=1"`
-
-	// Duration specifies the interval duration for duration-based schedules (e.g., "5s", "1h", "30m").
-	Duration Duration `yaml:"duration,omitempty" json:"duration,omitempty" jsonschema:"example=1h"`
 }
 
 // CronJobConfig defines configuration for a cron-based schedule.
@@ -135,19 +125,3 @@ type MonthlyJobConfig struct {
 	Day int `yaml:"day" json:"day" default:"1" jsonschema:"minimum=1,maximum=31,example=1"`
 }
 
-// DurationJobConfig defines configuration for a duration-based schedule.
-// Deprecated: Parameters are now read from ActionConfig.
-type DurationJobConfig struct {
-	// StartTime specifies when to start the schedule (optional).
-	StartTime RFC3339Time `yaml:"start_time,omitempty" json:"start_time,omitempty"`
-
-	// Duration specifies the interval duration (e.g., "5s", "1h", "30m").
-	Duration Duration `yaml:"duration" json:"duration" jsonschema:"example=1h"`
-}
-
-// OneTimeJobConfig defines configuration for a one-time schedule.
-// Deprecated: Parameters are now read from ActionConfig.
-type OneTimeJobConfig struct {
-	// Time specifies when to execute the job (RFC3339 format).
-	Time RFC3339Time `yaml:"time" json:"time" default:""`
-}

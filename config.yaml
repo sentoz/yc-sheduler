@@ -15,5 +15,22 @@ schedules:
     actions:
       stop:
         enabled: true
-        day: 4 # 0=Sunday, 1=Monday, ..., 6=Saturday
-        time: "16:00:22" # HH:MM или HH:MM:SS
+        day: 5 # 0=Sunday, 1=Monday, ..., 6=Saturday
+        time: "11:40:00" # HH:MM или HH:MM:SS
+      start:
+        enabled: true
+        day: 5 # 0=Sunday, 1=Monday, ..., 6=Saturday
+        time: "11:30:22" #
+  - name: vm-periodic-start
+    type: duration
+    resource:
+      type: vm
+      id: epdmddln1ak7kkillf7v
+      folder_id: b1grecosu9ue4vfnaa9k
+    actions:
+      start:
+        enabled: true
+        duration: 20m
+      stop:
+        enabled: true
+        duration: 10m
