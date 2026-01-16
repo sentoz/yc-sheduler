@@ -15,6 +15,7 @@ import (
 	"github.com/woozymasta/yc-scheduler/internal/scheduler"
 	"github.com/woozymasta/yc-scheduler/internal/signals"
 	"github.com/woozymasta/yc-scheduler/internal/validator"
+	"github.com/woozymasta/yc-scheduler/internal/web"
 	"github.com/woozymasta/yc-scheduler/internal/yc"
 	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
 )
@@ -93,7 +94,7 @@ func run() error {
 	if cfg.MetricsEnabled {
 		metrics.Init()
 	}
-	metrics.StartServer(ctx, addr, cfg.MetricsEnabled)
+	web.StartServer(ctx, addr, cfg.MetricsEnabled)
 
 	if err := registerSchedules(sched, client, cfg, opts.DryRun); err != nil {
 		return err
