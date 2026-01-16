@@ -64,9 +64,9 @@ func (d Duration) formatCompact() string {
 	}
 
 	var parts []string
-	hours := int(d.Duration.Hours())
-	minutes := int(d.Duration.Minutes()) % 60
-	seconds := int(d.Duration.Seconds()) % 60
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
 
 	if hours > 0 {
 		parts = append(parts, fmt.Sprintf("%dh", hours))

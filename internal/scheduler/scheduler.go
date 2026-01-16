@@ -87,7 +87,9 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	log.Info().Msg("Scheduler event loop started")
 
 	<-ctx.Done()
-	s.s.Shutdown()
+	if err := s.s.Shutdown(); err != nil {
+		log.Warn().Err(err).Msg("Scheduler shutdown error")
+	}
 
 	log.Info().Msg("Scheduler shutdown completed")
 
@@ -99,7 +101,9 @@ func (s *Scheduler) Stop() {
 	if s == nil || s.s == nil {
 		return
 	}
-	s.s.Shutdown()
+	if err := s.s.Shutdown(); err != nil {
+		log.Warn().Err(err).Msg("Scheduler stop error")
+	}
 }
 
 // AddOneTimeJob adds a one-time job that will execute immediately.

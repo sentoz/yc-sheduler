@@ -110,8 +110,8 @@ func (v *Validator) runOnce(ctx context.Context) {
 			continue
 		}
 
-		// Determine expected state based on schedule and current actual state
-		expectedState, expectedAction := v.determineExpectedState(sch, now, actualState)
+		// Determine expected state based on schedule and current time
+		expectedState, expectedAction := v.determineExpectedState(sch, now)
 		if expectedAction == "" {
 			log.Debug().
 				Str("schedule", sch.Name).
@@ -161,11 +161,11 @@ func (v *Validator) runOnce(ctx context.Context) {
 }
 
 // determineExpectedState determines the expected state and corrective action
-// based on the schedule configuration, current time, and actual resource state.
+// based on the schedule configuration and current time.
 // Returns (expectedState, correctiveAction).
 // expectedState: "running" or "stopped"
 // correctiveAction: "start", "stop", or "" if no action needed.
-func (v *Validator) determineExpectedState(sch config.Schedule, now time.Time, actualState string) (string, string) {
+func (v *Validator) determineExpectedState(sch config.Schedule, now time.Time) (string, string) {
 	hasStart := sch.Actions.Start != nil && sch.Actions.Start.Enabled
 	hasStop := sch.Actions.Stop != nil && sch.Actions.Stop.Enabled
 
@@ -248,7 +248,7 @@ func (v *Validator) getLastExecutionTime(sch config.Schedule, action *config.Act
 		if action.Crontab.String() == "" {
 			return time.Time{}, fmt.Errorf("cron schedule missing crontab")
 		}
-		return v.getLastCronTime(action.Crontab.String(), now, location)
+		return v.getLastCronTime(action.Crontab.String(), now)
 	default:
 		return time.Time{}, fmt.Errorf("unknown schedule type: %s", sch.Type)
 	}
@@ -265,7 +265,7 @@ func (v *Validator) getLastDailyTime(timeStr string, now time.Time, location *ti
 	hour := parts[0]
 	minute := parts[1]
 	second := 0
-	if n == 3 {
+	if n >= 3 {
 		second = parts[2]
 	}
 
@@ -291,7 +291,7 @@ func (v *Validator) getLastWeeklyTime(timeStr string, dayOfWeek int, now time.Ti
 	hour := parts[0]
 	minute := parts[1]
 	second := 0
-	if n == 3 {
+	if n >= 3 {
 		second = parts[2]
 	}
 
@@ -346,7 +346,7 @@ func (v *Validator) getLastMonthlyTime(timeStr string, dayOfMonth int, now time.
 	hour := parts[0]
 	minute := parts[1]
 	second := 0
-	if n == 3 {
+	if n >= 3 {
 		second = parts[2]
 	}
 
@@ -379,7 +379,7 @@ func (v *Validator) getLastMonthlyTime(timeStr string, dayOfMonth int, now time.
 }
 
 // getLastCronTime calculates the last cron execution time before now.
-func (v *Validator) getLastCronTime(crontab string, now time.Time, location *time.Location) (time.Time, error) {
+func (v *Validator) getLastCronTime(crontab string, now time.Time) (time.Time, error) {
 	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	schedule, err := parser.Parse(crontab)
 	if err != nil {

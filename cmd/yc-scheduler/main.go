@@ -44,7 +44,7 @@ func run() error {
 		return err
 	}
 
-	opts.Logger.Setup()
+	opts.Setup()
 
 	log.Debug().
 		Str("config_path", opts.Config).

@@ -24,7 +24,7 @@ func parseTime(t config.Time) (gocron.AtTimes, error) {
 	hour := parts[0]
 	minute := parts[1]
 	second := 0
-	if n == 3 {
+	if n >= 3 {
 		second = parts[2]
 	}
 
