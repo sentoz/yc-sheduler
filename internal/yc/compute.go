@@ -17,7 +17,9 @@ func (c *Client) StartInstance(ctx context.Context, folderID, instanceID string)
 		return fmt.Errorf("yc: client is not initialized")
 	}
 
-	conn, err := c.sdk.GetConnection(ctx, computepb.InstanceService_Start_FullMethodName)
+	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
+	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Start")
+	conn, err := c.sdk.GetConnection(ctx, endpoint)
 	if err != nil {
 		return fmt.Errorf("yc: get connection for start instance %s: %w", instanceID, err)
 	}
@@ -40,7 +42,9 @@ func (c *Client) StopInstance(ctx context.Context, folderID, instanceID string) 
 		return fmt.Errorf("yc: client is not initialized")
 	}
 
-	conn, err := c.sdk.GetConnection(ctx, computepb.InstanceService_Stop_FullMethodName)
+	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
+	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Stop")
+	conn, err := c.sdk.GetConnection(ctx, endpoint)
 	if err != nil {
 		return fmt.Errorf("yc: get connection for stop instance %s: %w", instanceID, err)
 	}
