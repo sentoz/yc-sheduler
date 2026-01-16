@@ -10,15 +10,15 @@ import (
 
 // StartCluster starts the specified Kubernetes cluster.
 func (c *Client) StartCluster(ctx context.Context, folderID, clusterID string) error {
-	if c == nil || c.sdk == nil {
-		return fmt.Errorf("yc: client is not initialized")
+	if err := c.ensureInitialized(); err != nil {
+		return err
 	}
 
 	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
 	endpoint := protoreflect.FullName("yandex.cloud.k8s.v1.ClusterService.Start")
-	conn, err := c.sdk.GetConnection(ctx, endpoint)
+	conn, err := c.getConnection(ctx, endpoint, "start cluster", clusterID)
 	if err != nil {
-		return fmt.Errorf("yc: get connection for start cluster %s: %w", clusterID, err)
+		return err
 	}
 
 	client := k8spb.NewClusterServiceClient(conn)
@@ -35,15 +35,15 @@ func (c *Client) StartCluster(ctx context.Context, folderID, clusterID string) e
 
 // StopCluster stops the specified Kubernetes cluster.
 func (c *Client) StopCluster(ctx context.Context, folderID, clusterID string) error {
-	if c == nil || c.sdk == nil {
-		return fmt.Errorf("yc: client is not initialized")
+	if err := c.ensureInitialized(); err != nil {
+		return err
 	}
 
 	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
 	endpoint := protoreflect.FullName("yandex.cloud.k8s.v1.ClusterService.Stop")
-	conn, err := c.sdk.GetConnection(ctx, endpoint)
+	conn, err := c.getConnection(ctx, endpoint, "stop cluster", clusterID)
 	if err != nil {
-		return fmt.Errorf("yc: get connection for stop cluster %s: %w", clusterID, err)
+		return err
 	}
 
 	client := k8spb.NewClusterServiceClient(conn)
@@ -60,16 +60,16 @@ func (c *Client) StopCluster(ctx context.Context, folderID, clusterID string) er
 
 // GetCluster retrieves the current state of a Kubernetes cluster.
 func (c *Client) GetCluster(ctx context.Context, folderID, clusterID string) (*k8spb.Cluster, error) {
-	if c == nil || c.sdk == nil {
-		return nil, fmt.Errorf("yc: client is not initialized")
+	if err := c.ensureInitialized(); err != nil {
+		return nil, err
 	}
 
 	// Use protoreflect.FullName to specify the endpoint, as SDK v2 may require this format
 	// Reference: https://github.com/yandex-cloud/go-sdk/blob/v2/services/k8s/v1/cluster.go
 	endpoint := protoreflect.FullName("yandex.cloud.k8s.v1.ClusterService.Get")
-	conn, err := c.sdk.GetConnection(ctx, endpoint)
+	conn, err := c.getConnection(ctx, endpoint, "get cluster", clusterID)
 	if err != nil {
-		return nil, fmt.Errorf("yc: get connection for get cluster %s: %w", clusterID, err)
+		return nil, err
 	}
 
 	client := k8spb.NewClusterServiceClient(conn)

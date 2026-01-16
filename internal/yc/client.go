@@ -10,6 +10,7 @@ import (
 	ycsdk "github.com/yandex-cloud/go-sdk/v2"
 	"github.com/yandex-cloud/go-sdk/v2/credentials"
 	"github.com/yandex-cloud/go-sdk/v2/pkg/options"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -64,8 +65,8 @@ func NewClient(ctx context.Context, auth AuthConfig) (*Client, error) {
 // to get a connection to Compute service, which requires authentication. This verifies
 // that the token/SA key is valid and not expired.
 func (c *Client) ValidateCredentials(ctx context.Context) error {
-	if c == nil || c.sdk == nil {
-		return fmt.Errorf("yc: client is not initialized")
+	if err := c.ensureInitialized(); err != nil {
+		return err
 	}
 
 	// Try to get a connection to Compute service, which requires authentication.
@@ -101,6 +102,25 @@ func (c *Client) ValidateCredentials(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// ensureInitialized checks if the client is properly initialized.
+// It returns ErrClientNotInitialized if the client or SDK is nil.
+func (c *Client) ensureInitialized() error {
+	if c == nil || c.sdk == nil {
+		return fmt.Errorf("yc: %w", ErrClientNotInitialized)
+	}
+	return nil
+}
+
+// getConnection retrieves a gRPC connection for the specified endpoint.
+// It handles error formatting consistently across all client methods.
+func (c *Client) getConnection(ctx context.Context, endpoint protoreflect.FullName, operation, resourceID string) (grpc.ClientConnInterface, error) {
+	conn, err := c.sdk.GetConnection(ctx, endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("yc: get connection for %s %s: %w", operation, resourceID, err)
+	}
+	return conn, nil
 }
 
 // Shutdown gracefully shuts down the underlying SDK, releasing any

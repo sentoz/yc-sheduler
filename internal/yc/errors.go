@@ -26,4 +26,8 @@ var (
 	// ErrOperationFailed is returned when a long-running Yandex Cloud
 	// operation finishes in a failed state.
 	ErrOperationFailed = errors.New("operation failed")
+
+	// ErrClientNotInitialized is returned when a Client method is called
+	// before the client has been properly initialized with NewClient.
+	ErrClientNotInitialized = errors.New("client is not initialized")
 )

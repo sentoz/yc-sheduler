@@ -13,15 +13,15 @@ import (
 
 // StartInstance starts a compute instance in the specified folder.
 func (c *Client) StartInstance(ctx context.Context, folderID, instanceID string) error {
-	if c == nil || c.sdk == nil {
-		return fmt.Errorf("yc: client is not initialized")
+	if err := c.ensureInitialized(); err != nil {
+		return err
 	}
 
 	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
 	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Start")
-	conn, err := c.sdk.GetConnection(ctx, endpoint)
+	conn, err := c.getConnection(ctx, endpoint, "start instance", instanceID)
 	if err != nil {
-		return fmt.Errorf("yc: get connection for start instance %s: %w", instanceID, err)
+		return err
 	}
 
 	client := computepb.NewInstanceServiceClient(conn)
@@ -38,15 +38,15 @@ func (c *Client) StartInstance(ctx context.Context, folderID, instanceID string)
 
 // StopInstance stops a compute instance in the specified folder.
 func (c *Client) StopInstance(ctx context.Context, folderID, instanceID string) error {
-	if c == nil || c.sdk == nil {
-		return fmt.Errorf("yc: client is not initialized")
+	if err := c.ensureInitialized(); err != nil {
+		return err
 	}
 
 	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
 	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Stop")
-	conn, err := c.sdk.GetConnection(ctx, endpoint)
+	conn, err := c.getConnection(ctx, endpoint, "stop instance", instanceID)
 	if err != nil {
-		return fmt.Errorf("yc: get connection for stop instance %s: %w", instanceID, err)
+		return err
 	}
 
 	client := computepb.NewInstanceServiceClient(conn)
@@ -63,15 +63,15 @@ func (c *Client) StopInstance(ctx context.Context, folderID, instanceID string) 
 
 // GetInstance retrieves the current state of a compute instance.
 func (c *Client) GetInstance(ctx context.Context, folderID, instanceID string) (*computepb.Instance, error) {
-	if c == nil || c.sdk == nil {
-		return nil, fmt.Errorf("yc: client is not initialized")
+	if err := c.ensureInitialized(); err != nil {
+		return nil, err
 	}
 
 	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
 	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Get")
-	conn, err := c.sdk.GetConnection(ctx, endpoint)
+	conn, err := c.getConnection(ctx, endpoint, "get instance", instanceID)
 	if err != nil {
-		return nil, fmt.Errorf("yc: get connection for get instance %s: %w", instanceID, err)
+		return nil, err
 	}
 
 	client := computepb.NewInstanceServiceClient(conn)
