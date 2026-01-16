@@ -105,6 +105,7 @@ func Make(client *yc.Client, sch pkgconfig.Schedule, action string, dryRun bool)
 					Str("current_state", currentState).
 					Msg("Resource is in transitional state, skipping operation")
 				metrics.IncOperation(resourceType, action, "skipped")
+				metrics.IncSchedulerSkip(resourceType, action, "transitional_state")
 				return
 			}
 
@@ -119,6 +120,7 @@ func Make(client *yc.Client, sch pkgconfig.Schedule, action string, dryRun bool)
 					Str("current_state", currentState).
 					Msg("Resource is already in desired state, skipping operation")
 				metrics.IncOperation(resourceType, action, "skipped")
+				metrics.IncSchedulerSkip(resourceType, action, "already_in_state")
 				return
 			}
 		}

@@ -12,6 +12,7 @@ import (
 	k8spb "github.com/yandex-cloud/go-genproto/yandex/cloud/k8s/v1"
 
 	"github.com/woozymasta/yc-scheduler/internal/executor"
+	"github.com/woozymasta/yc-scheduler/internal/metrics"
 	"github.com/woozymasta/yc-scheduler/internal/scheduler"
 	"github.com/woozymasta/yc-scheduler/internal/yc"
 	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
@@ -140,6 +141,7 @@ func (v *Validator) runOnce(ctx context.Context) {
 					Str("action", expectedAction).
 					Msg("Failed to create corrective job")
 			} else {
+				metrics.IncValidatorCorrection(sch.Resource.Type, expectedAction)
 				log.Info().
 					Str("schedule", sch.Name).
 					Str("resource_type", sch.Resource.Type).
