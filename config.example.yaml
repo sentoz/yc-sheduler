@@ -73,30 +73,6 @@ schedules:
         day: 1
         time: 00:00
 
-  # Example: Duration-based schedule (every 2 hours)
-  - name: vm-periodic-start
-    type: duration
-    resource:
-      type: vm
-      id: fhm1111111111111111
-      folder_id: b1g1234567890abcdef
-    actions:
-      start:
-        enabled: true
-        duration: 2h
-
-  # Example: One-time schedule
-  - name: vm-onetime-maintenance
-    type: one-time
-    resource:
-      type: vm
-      id: fhm2222222222222222
-      folder_id: b1g1234567890abcdef
-    actions:
-      stop:
-        enabled: true
-        time: 2024-12-31T23:59:59Z
-
   # Example: Kubernetes Cluster schedule
   # Note: Each action can have its own schedule parameters
   - name: k8s-cluster-maintenance
