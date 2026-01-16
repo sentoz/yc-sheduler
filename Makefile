@@ -91,7 +91,7 @@ tools:
 	@echo ">> installing golangci-lint"
 	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	@echo ">> installing betteralign"
-	$(GO) install github.com/orijtech/betteralign/cmd/betteralign@latest
+	$(GO) install github.com/dkorunic/betteralign/cmd/betteralign@latest
 	@echo ">> installing cyclonedx-gomod"
 	$(GO) install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
 
