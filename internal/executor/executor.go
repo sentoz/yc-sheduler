@@ -9,14 +9,14 @@ import (
 	computepb "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 	k8spb "github.com/yandex-cloud/go-genproto/yandex/cloud/k8s/v1"
 
+	"github.com/woozymasta/yc-scheduler/internal/config"
 	"github.com/woozymasta/yc-scheduler/internal/metrics"
 	"github.com/woozymasta/yc-scheduler/internal/yc"
-	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
 )
 
 // Make returns a job function that executes the given action for the schedule's resource.
 // The returned function has no parameters to match gocron's expectations.
-func Make(client *yc.Client, sch pkgconfig.Schedule, action string, dryRun bool) func() {
+func Make(client *yc.Client, sch config.Schedule, action string, dryRun bool) func() {
 	resource := sch.Resource
 
 	return func() {
@@ -150,7 +150,7 @@ func Make(client *yc.Client, sch pkgconfig.Schedule, action string, dryRun bool)
 // Returns (state, isTransitional, error).
 // state: "running", "stopped", or a transitional state name
 // isTransitional: true if resource is in a transitional state
-func getCurrentState(ctx context.Context, client *yc.Client, resource pkgconfig.Resource) (string, bool, error) {
+func getCurrentState(ctx context.Context, client *yc.Client, resource config.Resource) (string, bool, error) {
 	switch resource.Type {
 	case "vm":
 		instance, err := client.GetInstance(ctx, resource.FolderID, resource.ID)

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/invopop/jsonschema"
-	"github.com/woozymasta/yc-scheduler/pkg/config"
+	"github.com/woozymasta/yc-scheduler/internal/config"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// Add Go comments for better documentation
-	if err := r.AddGoComments(modulePath, "pkg/config", jsonschema.WithFullComment()); err != nil {
+	if err := r.AddGoComments(modulePath, "internal/config", jsonschema.WithFullComment()); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to add Go comments: %v\n", err)
 	}
 

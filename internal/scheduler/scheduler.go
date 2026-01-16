@@ -9,7 +9,7 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/rs/zerolog/log"
 
-	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
+	"github.com/woozymasta/yc-scheduler/internal/config"
 )
 
 // Scheduler wraps gocron.Scheduler and provides a higher-level API
@@ -125,7 +125,7 @@ func (s *Scheduler) AddOneTimeJob(name string, fn func()) error {
 
 // ScheduleToJobDefinition converts a configuration schedule and action into a
 // gocron.JobDefinition. The action config contains the schedule-specific parameters.
-func ScheduleToJobDefinition(sch pkgconfig.Schedule, action *pkgconfig.ActionConfig) (gocron.JobDefinition, error) {
+func ScheduleToJobDefinition(sch config.Schedule, action *config.ActionConfig) (gocron.JobDefinition, error) {
 	switch sch.Type {
 	case "cron":
 		if action.Crontab.String() == "" {
@@ -136,7 +136,7 @@ func ScheduleToJobDefinition(sch pkgconfig.Schedule, action *pkgconfig.ActionCon
 		if action.Time == "" {
 			return nil, fmt.Errorf("scheduler: daily schedule %q missing time in action", sch.Name)
 		}
-		at, err := parseTime(pkgconfig.Time(action.Time))
+		at, err := parseTime(config.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: daily schedule %q: %w", sch.Name, err)
 		}
@@ -148,7 +148,7 @@ func ScheduleToJobDefinition(sch pkgconfig.Schedule, action *pkgconfig.ActionCon
 		if action.Day < 0 || action.Day > 6 {
 			return nil, fmt.Errorf("scheduler: weekly schedule %q missing or invalid day in action (got %d, expected 0-6)", sch.Name, action.Day)
 		}
-		at, err := parseTime(pkgconfig.Time(action.Time))
+		at, err := parseTime(config.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: weekly schedule %q: %w", sch.Name, err)
 		}
@@ -164,7 +164,7 @@ func ScheduleToJobDefinition(sch pkgconfig.Schedule, action *pkgconfig.ActionCon
 		if action.Day < 1 || action.Day > 31 {
 			return nil, fmt.Errorf("scheduler: monthly schedule %q missing or invalid day in action (got %d, expected 1-31)", sch.Name, action.Day)
 		}
-		at, err := parseTime(pkgconfig.Time(action.Time))
+		at, err := parseTime(config.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: monthly schedule %q: %w", sch.Name, err)
 		}

@@ -6,10 +6,10 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 
-	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
+	"github.com/woozymasta/yc-scheduler/internal/config"
 )
 
-func parseTime(t pkgconfig.Time) (gocron.AtTimes, error) {
+func parseTime(t config.Time) (gocron.AtTimes, error) {
 	value := t.String()
 	if value == "" {
 		return nil, fmt.Errorf("empty time")

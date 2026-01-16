@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/woozymasta/yc-scheduler/pkg/config/config",
+  "$id": "https://github.com/woozymasta/yc-scheduler/internal/config/config",
   "$ref": "#/$defs/Config",
   "$defs": {
     "ActionConfig": {

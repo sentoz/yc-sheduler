@@ -11,24 +11,24 @@ import (
 	computepb "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 	k8spb "github.com/yandex-cloud/go-genproto/yandex/cloud/k8s/v1"
 
+	"github.com/woozymasta/yc-scheduler/internal/config"
 	"github.com/woozymasta/yc-scheduler/internal/executor"
 	"github.com/woozymasta/yc-scheduler/internal/metrics"
 	"github.com/woozymasta/yc-scheduler/internal/scheduler"
 	"github.com/woozymasta/yc-scheduler/internal/yc"
-	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
 )
 
 // Validator periodically inspects resources and logs their state.
 // If a discrepancy is found, it creates a one-time job to fix it.
 type Validator struct {
 	client    *yc.Client
-	cfg       *pkgconfig.Config
+	cfg       *config.Config
 	scheduler *scheduler.Scheduler
 	dryRun    bool
 }
 
 // New creates a new Validator instance.
-func New(client *yc.Client, cfg *pkgconfig.Config, sched *scheduler.Scheduler, dryRun bool) *Validator {
+func New(client *yc.Client, cfg *config.Config, sched *scheduler.Scheduler, dryRun bool) *Validator {
 	v := &Validator{
 		client:    client,
 		cfg:       cfg,
@@ -165,7 +165,7 @@ func (v *Validator) runOnce(ctx context.Context) {
 // Returns (expectedState, correctiveAction).
 // expectedState: "running" or "stopped"
 // correctiveAction: "start", "stop", or "" if no action needed.
-func (v *Validator) determineExpectedState(sch pkgconfig.Schedule, now time.Time, actualState string) (string, string) {
+func (v *Validator) determineExpectedState(sch config.Schedule, now time.Time, actualState string) (string, string) {
 	hasStart := sch.Actions.Start != nil && sch.Actions.Start.Enabled
 	hasStop := sch.Actions.Stop != nil && sch.Actions.Stop.Enabled
 
@@ -221,7 +221,7 @@ func (v *Validator) determineExpectedState(sch pkgconfig.Schedule, now time.Time
 
 // getLastExecutionTime calculates the last execution time of an action before the given time.
 // Returns the last execution time or an error if calculation fails.
-func (v *Validator) getLastExecutionTime(sch pkgconfig.Schedule, action *pkgconfig.ActionConfig, now time.Time, location *time.Location) (time.Time, error) {
+func (v *Validator) getLastExecutionTime(sch config.Schedule, action *config.ActionConfig, now time.Time, location *time.Location) (time.Time, error) {
 	switch sch.Type {
 	case "daily":
 		if action.Time == "" {
@@ -418,7 +418,7 @@ func (v *Validator) getLastCronTime(crontab string, now time.Time, location *tim
 // Returns (state, isTransitional, error).
 // state: "running", "stopped", or a transitional state name (e.g., "provisioning", "stopping")
 // isTransitional: true if resource is in a transitional state (PROVISIONING, STOPPING, STARTING, etc.)
-func (v *Validator) getActualState(ctx context.Context, resource pkgconfig.Resource) (string, bool, error) {
+func (v *Validator) getActualState(ctx context.Context, resource config.Resource) (string, bool, error) {
 	switch resource.Type {
 	case "vm":
 		instance, err := v.client.GetInstance(ctx, resource.FolderID, resource.ID)

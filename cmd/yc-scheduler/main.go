@@ -8,7 +8,7 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog/log"
 
-	iconfig "github.com/woozymasta/yc-scheduler/internal/config"
+	"github.com/woozymasta/yc-scheduler/internal/config"
 	"github.com/woozymasta/yc-scheduler/internal/executor"
 	"github.com/woozymasta/yc-scheduler/internal/logger"
 	"github.com/woozymasta/yc-scheduler/internal/metrics"
@@ -17,7 +17,6 @@ import (
 	"github.com/woozymasta/yc-scheduler/internal/validator"
 	"github.com/woozymasta/yc-scheduler/internal/web"
 	"github.com/woozymasta/yc-scheduler/internal/yc"
-	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
 )
 
 func main() {
@@ -53,7 +52,7 @@ func run() error {
 		Bool("dry_run", opts.DryRun).
 		Msg("CLI options parsed")
 
-	cfg, err := iconfig.Load(context.Background(), opts.Config)
+	cfg, err := config.Load(context.Background(), opts.Config)
 	if err != nil {
 		return fmt.Errorf("yc-scheduler: load config: %w", err)
 	}
@@ -113,7 +112,7 @@ func run() error {
 	return nil
 }
 
-func registerSchedules(s *scheduler.Scheduler, client *yc.Client, cfg *pkgconfig.Config, dryRun bool) error {
+func registerSchedules(s *scheduler.Scheduler, client *yc.Client, cfg *config.Config, dryRun bool) error {
 	for _, sch := range cfg.Schedules {
 		if sch.Actions.Start != nil && sch.Actions.Start.Enabled {
 			def, err := scheduler.ScheduleToJobDefinition(sch, sch.Actions.Start)

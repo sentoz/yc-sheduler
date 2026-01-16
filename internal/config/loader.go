@@ -13,7 +13,6 @@ import (
 	jschema "github.com/santhosh-tekuri/jsonschema/v6"
 	jamle "github.com/woozymasta/jamle"
 
-	pkgconfig "github.com/woozymasta/yc-scheduler/pkg/config"
 	"github.com/woozymasta/yc-scheduler/static"
 )
 
@@ -59,7 +58,7 @@ func getSchema() (*jschema.Schema, error) {
 // Load reads, parses and validates configuration from the given path.
 // The path must point to a YAML or JSON file. Environment variables inside
 // the configuration are expanded by jamle.
-func Load(_ context.Context, path string) (*pkgconfig.Config, error) {
+func Load(_ context.Context, path string) (*Config, error) {
 	if path == "" {
 		return nil, fmt.Errorf("%w: empty path", ErrConfigNotFound)
 	}
@@ -81,7 +80,7 @@ func Load(_ context.Context, path string) (*pkgconfig.Config, error) {
 		return nil, fmt.Errorf("read config %q: %w", path, err)
 	}
 
-	var cfg pkgconfig.Config
+	var cfg Config
 	if err := jamle.Unmarshal(raw, &cfg); err != nil {
 		return nil, fmt.Errorf("%w: decode: %v", ErrInvalidConfig, err)
 	}
@@ -105,7 +104,7 @@ func Load(_ context.Context, path string) (*pkgconfig.Config, error) {
 
 // validate checks configuration against the embedded JSON schema and
 // returns a wrapped ErrSchemaValidation on failure.
-func validate(cfg *pkgconfig.Config) error {
+func validate(cfg *Config) error {
 	schema, err := getSchema()
 	if err != nil {
 		return err
