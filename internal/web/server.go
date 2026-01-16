@@ -10,11 +10,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// StartServer starts an HTTP server that exposes Prometheus metrics (if enabled)
-// and health-check endpoints. It runs the server in a separate goroutine
-// and handles graceful shutdown via context.
-// If metricsEnabled is false, only health endpoints are available.
-func StartServer(ctx context.Context, addr string, metricsEnabled bool) {
+// Server represents an HTTP server for metrics and health endpoints.
+type Server struct {
+	srv    *http.Server
+	ln     net.Listener
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+// NewServer creates a new Server instance.
+func NewServer(ctx context.Context, addr string, metricsEnabled bool) (*Server, error) {
 	mux := http.NewServeMux()
 
 	// Register metrics endpoint if enabled (must be before /)
@@ -38,11 +43,16 @@ func StartServer(ctx context.Context, addr string, metricsEnabled bool) {
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Warn().
-			Str("addr", addr).
-			Err(err).
-			Msg("Failed to bind metrics/health server listener, metrics will be disabled")
-		return
+		return nil, err
+	}
+
+	serverCtx, cancel := context.WithCancel(ctx)
+
+	server := &Server{
+		srv:    srv,
+		ln:     ln,
+		ctx:    serverCtx,
+		cancel: cancel,
 	}
 
 	log.Info().
@@ -50,16 +60,30 @@ func StartServer(ctx context.Context, addr string, metricsEnabled bool) {
 		Bool("metrics_enabled", metricsEnabled).
 		Msg("Starting metrics and health HTTP server")
 
+	return server, nil
+}
+
+// Start starts the HTTP server in a separate goroutine.
+func (s *Server) Start() {
 	go func() {
-		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
+		if err := s.srv.Serve(s.ln); err != nil && err != http.ErrServerClosed {
 			log.Warn().Err(err).Msg("Metrics/health HTTP server stopped with error")
 		}
 	}()
 
 	go func() {
-		<-ctx.Done()
-		if err := srv.Shutdown(context.Background()); err != nil {
+		<-s.ctx.Done()
+		if err := s.Shutdown(context.Background()); err != nil {
 			log.Warn().Err(err).Msg("Failed to shutdown metrics/health HTTP server")
 		}
 	}()
+}
+
+// Shutdown gracefully shuts down the HTTP server.
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.cancel()
+	if s.srv == nil {
+		return nil
+	}
+	return s.srv.Shutdown(ctx)
 }

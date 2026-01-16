@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	computepb "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
+	k8spb "github.com/yandex-cloud/go-genproto/yandex/cloud/k8s/v1"
 	ycsdk "github.com/yandex-cloud/go-sdk/v2"
 	"github.com/yandex-cloud/go-sdk/v2/credentials"
 	"github.com/yandex-cloud/go-sdk/v2/pkg/options"
@@ -14,11 +15,26 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// ClientInterface defines the interface for Yandex Cloud client operations.
+type ClientInterface interface {
+	ValidateCredentials(ctx context.Context) error
+	StartInstance(ctx context.Context, folderID, instanceID string) error
+	StopInstance(ctx context.Context, folderID, instanceID string) error
+	GetInstance(ctx context.Context, folderID, instanceID string) (*computepb.Instance, error)
+	StartCluster(ctx context.Context, folderID, clusterID string) error
+	StopCluster(ctx context.Context, folderID, clusterID string) error
+	GetCluster(ctx context.Context, folderID, clusterID string) (*k8spb.Cluster, error)
+	Shutdown(ctx context.Context) error
+}
+
 // Client wraps Yandex Cloud SDK and provides a narrow interface for
 // higher-level components such as the scheduler.
 type Client struct {
 	sdk *ycsdk.SDK
 }
+
+// Ensure Client implements ClientInterface.
+var _ ClientInterface = (*Client)(nil)
 
 // AuthConfig describes how to authenticate against Yandex Cloud APIs.
 // ServiceAccountKeyFile is the preferred method; Token is kept for

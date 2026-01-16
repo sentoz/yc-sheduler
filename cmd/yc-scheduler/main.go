@@ -8,13 +8,11 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog/log"
 
+	"github.com/woozymasta/yc-scheduler/internal/app"
 	"github.com/woozymasta/yc-scheduler/internal/config"
 	"github.com/woozymasta/yc-scheduler/internal/logger"
-	"github.com/woozymasta/yc-scheduler/internal/metrics"
-	"github.com/woozymasta/yc-scheduler/internal/scheduler"
 	"github.com/woozymasta/yc-scheduler/internal/signals"
-	"github.com/woozymasta/yc-scheduler/internal/validator"
-	"github.com/woozymasta/yc-scheduler/internal/web"
+	"github.com/woozymasta/yc-scheduler/internal/vars"
 	"github.com/woozymasta/yc-scheduler/internal/yc"
 )
 
@@ -27,10 +25,11 @@ func main() {
 
 func run() error {
 	var opts struct {
-		Config string `short:"c" long:"config" required:"true" description:"Path to configuration file (YAML or JSON)"`
-		Token  string `short:"t" long:"token" env:"YC_TOKEN" description:"Yandex Cloud OAuth/IAM token (discouraged; prefer --sa-key)"`
-		SaKey  string `long:"sa-key" env:"YC_SA_KEY_FILE" description:"Path to Yandex Cloud service account key JSON file (preferred)"`
-		DryRun bool   `short:"n" long:"dry-run" description:"Dry run mode: log planned actions without calling YC APIs"`
+		Version bool   `long:"version" description:"Print version information and exit"`
+		Config  string `short:"c" long:"config" description:"Path to configuration file (YAML or JSON)"`
+		Token   string `short:"t" long:"token" env:"YC_TOKEN" description:"Yandex Cloud OAuth/IAM token (discouraged; prefer --sa-key)"`
+		SaKey   string `long:"sa-key" env:"YC_SA_KEY_FILE" description:"Path to Yandex Cloud service account key JSON file (preferred)"`
+		DryRun  bool   `short:"n" long:"dry-run" description:"Dry run mode: log planned actions without calling YC APIs"`
 
 		logger.Logger `group:"Logging"`
 	}
@@ -42,6 +41,17 @@ func run() error {
 			return nil
 		}
 		return err
+	}
+
+	// Handle --version flag
+	if opts.Version {
+		vars.Print()
+		return nil
+	}
+
+	// Validate that config is provided when not using --version
+	if opts.Config == "" {
+		return fmt.Errorf("--config is required")
 	}
 
 	opts.Setup()
@@ -78,35 +88,20 @@ func run() error {
 
 	defer signals.GracefulShutdown(client, cfg.ShutdownTimeout.Std())
 
-	timezone := cfg.Timezone.String()
-
-	sched, err := scheduler.New(timezone, cfg.MaxConcurrentJobs)
+	// Create and initialize application
+	application, err := app.New(cfg, client, opts.DryRun)
 	if err != nil {
-		return fmt.Errorf("yc-scheduler: init scheduler: %w", err)
+		return fmt.Errorf("yc-scheduler: create app: %w", err)
 	}
 
-	// Start HTTP server for metrics and health endpoints on metrics_port.
-	// Health endpoints are always available, metrics only if MetricsEnabled is true.
-	addr := fmt.Sprintf(":%d", cfg.MetricsPort)
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout.Std())
+		defer shutdownCancel()
+		if err := application.Shutdown(shutdownCtx); err != nil {
+			log.Warn().Err(err).Msg("Failed to shutdown application gracefully")
+		}
+	}()
 
-	if cfg.MetricsEnabled {
-		metrics.Init()
-	}
-	web.StartServer(ctx, addr, cfg.MetricsEnabled)
-
-	if err := sched.RegisterSchedules(client, cfg, opts.DryRun); err != nil {
-		return err
-	}
-
-	// Start state validator with interval from config.
-	v := validator.New(client, cfg, sched, opts.DryRun)
-	v.Start(ctx, cfg.ValidationInterval.Std())
-
-	log.Info().Msg("yc-scheduler started")
-	if err := sched.Start(ctx); err != nil {
-		return fmt.Errorf("yc-scheduler: scheduler stopped with error: %w", err)
-	}
-	log.Info().Msg("yc-scheduler stopped")
-
-	return nil
+	// Run application
+	return application.Run(ctx)
 }

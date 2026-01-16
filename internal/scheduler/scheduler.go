@@ -11,14 +11,28 @@ import (
 
 	"github.com/woozymasta/yc-scheduler/internal/config"
 	"github.com/woozymasta/yc-scheduler/internal/executor"
-	"github.com/woozymasta/yc-scheduler/internal/yc"
+	"github.com/woozymasta/yc-scheduler/internal/metrics"
+	"github.com/woozymasta/yc-scheduler/internal/resource"
+	"github.com/woozymasta/yc-scheduler/internal/schedule"
 )
+
+// Interface defines the interface for scheduler operations.
+type Interface interface {
+	AddJob(def gocron.JobDefinition, name string, fn func(), timezone string) error
+	Start(ctx context.Context) error
+	Stop()
+	AddOneTimeJob(name string, fn func()) error
+	RegisterSchedules(stateChecker resource.StateChecker, operator resource.Operator, cfg *config.Config, dryRun bool, m *metrics.Metrics) error
+}
 
 // Scheduler wraps gocron.Scheduler and provides a higher-level API
 // tailored for yc-scheduler configuration.
 type Scheduler struct {
 	s gocron.Scheduler
 }
+
+// Ensure Scheduler implements Interface.
+var _ Interface = (*Scheduler)(nil)
 
 // New creates a new Scheduler configured with the provided timezone and
 // concurrency limit. If timezone is empty, the local system timezone is
@@ -131,7 +145,8 @@ func (s *Scheduler) AddOneTimeJob(name string, fn func()) error {
 
 // RegisterSchedules registers all schedules from the configuration.
 // It iterates through all schedules and registers start/stop actions as jobs.
-func (s *Scheduler) RegisterSchedules(client *yc.Client, cfg *config.Config, dryRun bool) error {
+// If m is nil, metrics will not be recorded.
+func (s *Scheduler) RegisterSchedules(stateChecker resource.StateChecker, operator resource.Operator, cfg *config.Config, dryRun bool, m *metrics.Metrics) error {
 	if s == nil || s.s == nil {
 		return fmt.Errorf("scheduler: not initialized")
 	}
@@ -143,7 +158,7 @@ func (s *Scheduler) RegisterSchedules(client *yc.Client, cfg *config.Config, dry
 				return fmt.Errorf("register schedule %q start action: %w", sch.Name, err)
 			}
 			name := sch.Name + ":start"
-			if err := s.AddJob(def, name, executor.Make(client, sch, "start", dryRun), ""); err != nil {
+			if err := s.AddJob(def, name, executor.Make(stateChecker, operator, sch, "start", dryRun, m), ""); err != nil {
 				return err
 			}
 		}
@@ -153,7 +168,7 @@ func (s *Scheduler) RegisterSchedules(client *yc.Client, cfg *config.Config, dry
 				return fmt.Errorf("register schedule %q stop action: %w", sch.Name, err)
 			}
 			name := sch.Name + ":stop"
-			if err := s.AddJob(def, name, executor.Make(client, sch, "stop", dryRun), ""); err != nil {
+			if err := s.AddJob(def, name, executor.Make(stateChecker, operator, sch, "stop", dryRun, m), ""); err != nil {
 				return err
 			}
 		}
@@ -174,7 +189,7 @@ func ScheduleToJobDefinition(sch config.Schedule, action *config.ActionConfig) (
 		if action.Time == "" {
 			return nil, fmt.Errorf("scheduler: daily schedule %q missing time in action", sch.Name)
 		}
-		at, err := parseTime(config.Time(action.Time))
+		at, err := schedule.ParseTime(config.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: daily schedule %q: %w", sch.Name, err)
 		}
@@ -186,11 +201,11 @@ func ScheduleToJobDefinition(sch config.Schedule, action *config.ActionConfig) (
 		if action.Day < 0 || action.Day > 6 {
 			return nil, fmt.Errorf("scheduler: weekly schedule %q missing or invalid day in action (got %d, expected 0-6)", sch.Name, action.Day)
 		}
-		at, err := parseTime(config.Time(action.Time))
+		at, err := schedule.ParseTime(config.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: weekly schedule %q: %w", sch.Name, err)
 		}
-		weekday, err := parseWeekday(action.Day)
+		weekday, err := schedule.ParseWeekday(action.Day)
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: weekly schedule %q: %w", sch.Name, err)
 		}
@@ -202,11 +217,11 @@ func ScheduleToJobDefinition(sch config.Schedule, action *config.ActionConfig) (
 		if action.Day < 1 || action.Day > 31 {
 			return nil, fmt.Errorf("scheduler: monthly schedule %q missing or invalid day in action (got %d, expected 1-31)", sch.Name, action.Day)
 		}
-		at, err := parseTime(config.Time(action.Time))
+		at, err := schedule.ParseTime(config.Time(action.Time))
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: monthly schedule %q: %w", sch.Name, err)
 		}
-		day, err := parseDayOfMonth(action.Day)
+		day, err := schedule.ParseDayOfMonth(action.Day)
 		if err != nil {
 			return nil, fmt.Errorf("scheduler: monthly schedule %q: %w", sch.Name, err)
 		}

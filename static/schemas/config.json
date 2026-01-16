@@ -136,7 +136,7 @@
       "type": "string",
       "pattern": "^(?:\\d+(?:\\.\\d+)?(?:s|m|h|d|w))+$",
       "title": "Human readable duration",
-      "description": "Duration string: a positive sequence of <number><unit> tokens. Units:\n* `s` \u2014 seconds\n* `m` \u2014 minutes (`60` s)\n* `h` \u2014 hours (`60` m)\n* `d` \u2014 days (`24` h)\n* `w` \u2014 weeks (`7` d)\n",
+      "description": "Duration string: a positive sequence of \u003cnumber\u003e\u003cunit\u003e tokens. Units:\n* `s` — seconds\n* `m` — minutes (`60` s)\n* `h` — hours (`60` m)\n* `d` — days (`24` h)\n* `w` — weeks (`7` d)\n",
       "examples": [
         "2h45m",
         "1.5d",
@@ -168,17 +168,6 @@
         "day"
       ],
       "description": "MonthlyJobConfig defines configuration for a monthly schedule.\nDeprecated: Parameters are now read from ActionConfig."
-    },
-    "RFC3339Time": {
-      "type": "string",
-      "minLength": 20,
-      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2})$",
-      "format": "date-time",
-      "description": "Time in RFC3339 format (e.g., 2024-01-01T09:00:00Z)",
-      "examples": [
-        "2024-01-01T09:00:00Z",
-        "2024-12-31T23:59:59+03:00"
-      ]
     },
     "Resource": {
       "properties": {
