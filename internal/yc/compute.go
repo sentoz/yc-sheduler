@@ -63,7 +63,9 @@ func (c *Client) GetInstance(ctx context.Context, folderID, instanceID string) (
 		return nil, fmt.Errorf("yc: client is not initialized")
 	}
 
-	conn, err := c.sdk.GetConnection(ctx, computepb.InstanceService_Get_FullMethodName)
+	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
+	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Get")
+	conn, err := c.sdk.GetConnection(ctx, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("yc: get connection for get instance %s: %w", instanceID, err)
 	}
