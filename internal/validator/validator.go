@@ -2,8 +2,10 @@ package validator
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 
 	computepb "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
@@ -165,14 +167,282 @@ func (v *Validator) determineExpectedState(sch pkgconfig.Schedule, now time.Time
 	}
 
 	if hasStart && hasStop {
-		// Both enabled: simplified logic - prefer running
-		// In a more sophisticated implementation, we would check
-		// the actual schedule times to determine the expected state.
-		return "running", "start"
+		// Both enabled: determine which action should have occurred last
+		// by comparing the last execution times of start and stop actions.
+		location := time.Local
+		if v.cfg.Timezone.String() != "" {
+			loc, err := time.LoadLocation(v.cfg.Timezone.String())
+			if err == nil {
+				location = loc
+			}
+		}
+		nowInTZ := now.In(location)
+
+		lastStartTime, err := v.getLastExecutionTime(sch, sch.Actions.Start, nowInTZ, location)
+		if err != nil {
+			log.Debug().Err(err).
+				Str("schedule", sch.Name).
+				Msg("Failed to calculate last start time, defaulting to running")
+			return "running", "start"
+		}
+
+		lastStopTime, err := v.getLastExecutionTime(sch, sch.Actions.Stop, nowInTZ, location)
+		if err != nil {
+			log.Debug().Err(err).
+				Str("schedule", sch.Name).
+				Msg("Failed to calculate last stop time, defaulting to stopped")
+			return "stopped", "stop"
+		}
+
+		// If last start happened after last stop, resource should be running
+		// If last stop happened after last start, resource should be stopped
+		if lastStartTime.After(lastStopTime) {
+			return "running", "start"
+		}
+		return "stopped", "stop"
 	}
 
 	// No actions enabled
 	return "", ""
+}
+
+// getLastExecutionTime calculates the last execution time of an action before the given time.
+// Returns the last execution time or an error if calculation fails.
+func (v *Validator) getLastExecutionTime(sch pkgconfig.Schedule, action *pkgconfig.ActionConfig, now time.Time, location *time.Location) (time.Time, error) {
+	switch sch.Type {
+	case "daily":
+		if action.Time == "" {
+			return time.Time{}, fmt.Errorf("daily schedule missing time")
+		}
+		return v.getLastDailyTime(action.Time, now, location)
+	case "weekly":
+		if action.Time == "" {
+			return time.Time{}, fmt.Errorf("weekly schedule missing time")
+		}
+		if action.Day < 0 || action.Day > 6 {
+			return time.Time{}, fmt.Errorf("weekly schedule invalid day: %d", action.Day)
+		}
+		return v.getLastWeeklyTime(action.Time, action.Day, now, location)
+	case "monthly":
+		if action.Time == "" {
+			return time.Time{}, fmt.Errorf("monthly schedule missing time")
+		}
+		if action.Day < 1 || action.Day > 31 {
+			return time.Time{}, fmt.Errorf("monthly schedule invalid day: %d", action.Day)
+		}
+		return v.getLastMonthlyTime(action.Time, action.Day, now, location)
+	case "cron":
+		if action.Crontab.String() == "" {
+			return time.Time{}, fmt.Errorf("cron schedule missing crontab")
+		}
+		return v.getLastCronTime(action.Crontab.String(), now, location)
+	case "duration":
+		if action.Duration.Duration == 0 {
+			return time.Time{}, fmt.Errorf("duration schedule missing duration")
+		}
+		return v.getLastDurationTime(action.Duration.Std(), now)
+	case "one-time":
+		if action.Time == "" {
+			return time.Time{}, fmt.Errorf("one-time schedule missing time")
+		}
+		rfcTime := pkgconfig.RFC3339Time(action.Time)
+		t, err := rfcTime.Time()
+		if err != nil {
+			return time.Time{}, fmt.Errorf("invalid RFC3339 time: %w", err)
+		}
+		// For one-time, return the time if it's in the past, otherwise return zero time
+		if t.Before(now) || t.Equal(now) {
+			return t, nil
+		}
+		return time.Time{}, fmt.Errorf("one-time schedule is in the future")
+	default:
+		return time.Time{}, fmt.Errorf("unknown schedule type: %s", sch.Type)
+	}
+}
+
+// getLastDailyTime calculates the last daily execution time before now.
+func (v *Validator) getLastDailyTime(timeStr string, now time.Time, location *time.Location) (time.Time, error) {
+	parts := [3]int{}
+	n, err := fmt.Sscanf(timeStr, "%d:%d:%d", &parts[0], &parts[1], &parts[2])
+	if err != nil && n < 2 {
+		return time.Time{}, fmt.Errorf("invalid time format: %s", timeStr)
+	}
+
+	hour := parts[0]
+	minute := parts[1]
+	second := 0
+	if n == 3 {
+		second = parts[2]
+	}
+
+	// Create time for today at the specified time
+	today := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, second, 0, location)
+
+	// If today's time hasn't passed yet, use yesterday
+	if today.After(now) || today.Equal(now) {
+		today = today.AddDate(0, 0, -1)
+	}
+
+	return today, nil
+}
+
+// getLastWeeklyTime calculates the last weekly execution time before now.
+func (v *Validator) getLastWeeklyTime(timeStr string, dayOfWeek int, now time.Time, location *time.Location) (time.Time, error) {
+	parts := [3]int{}
+	n, err := fmt.Sscanf(timeStr, "%d:%d:%d", &parts[0], &parts[1], &parts[2])
+	if err != nil && n < 2 {
+		return time.Time{}, fmt.Errorf("invalid time format: %s", timeStr)
+	}
+
+	hour := parts[0]
+	minute := parts[1]
+	second := 0
+	if n == 3 {
+		second = parts[2]
+	}
+
+	// Convert day of week (0=Sunday, 1=Monday, ..., 6=Saturday) to time.Weekday
+	var targetWeekday time.Weekday
+	switch dayOfWeek {
+	case 0:
+		targetWeekday = time.Sunday
+	case 1:
+		targetWeekday = time.Monday
+	case 2:
+		targetWeekday = time.Tuesday
+	case 3:
+		targetWeekday = time.Wednesday
+	case 4:
+		targetWeekday = time.Thursday
+	case 5:
+		targetWeekday = time.Friday
+	case 6:
+		targetWeekday = time.Saturday
+	default:
+		return time.Time{}, fmt.Errorf("invalid day of week: %d", dayOfWeek)
+	}
+
+	// Find the last occurrence of the target weekday
+	currentWeekday := now.Weekday()
+	daysBack := int(currentWeekday - targetWeekday)
+	if daysBack < 0 {
+		daysBack += 7
+	}
+
+	// If today is the target day, check if the time has passed
+	if daysBack == 0 {
+		today := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, second, 0, location)
+		if today.After(now) {
+			daysBack = 7 // Use last week's occurrence
+		}
+	}
+
+	targetDate := now.AddDate(0, 0, -daysBack)
+	return time.Date(targetDate.Year(), targetDate.Month(), targetDate.Day(), hour, minute, second, 0, location), nil
+}
+
+// getLastMonthlyTime calculates the last monthly execution time before now.
+func (v *Validator) getLastMonthlyTime(timeStr string, dayOfMonth int, now time.Time, location *time.Location) (time.Time, error) {
+	parts := [3]int{}
+	n, err := fmt.Sscanf(timeStr, "%d:%d:%d", &parts[0], &parts[1], &parts[2])
+	if err != nil && n < 2 {
+		return time.Time{}, fmt.Errorf("invalid time format: %s", timeStr)
+	}
+
+	hour := parts[0]
+	minute := parts[1]
+	second := 0
+	if n == 3 {
+		second = parts[2]
+	}
+
+	// Try this month first
+	thisMonth := time.Date(now.Year(), now.Month(), dayOfMonth, hour, minute, second, 0, location)
+	// If day doesn't exist in this month (e.g., Feb 31), go to last month
+	if thisMonth.Month() != now.Month() {
+		// Use last day of previous month
+		lastMonth := now.AddDate(0, -1, 0)
+		lastDay := time.Date(lastMonth.Year(), lastMonth.Month()+1, 0, hour, minute, second, 0, location)
+		if dayOfMonth > lastDay.Day() {
+			thisMonth = lastDay
+		} else {
+			thisMonth = time.Date(lastMonth.Year(), lastMonth.Month(), dayOfMonth, hour, minute, second, 0, location)
+		}
+	}
+
+	// If this month's time hasn't passed yet, use last month
+	if thisMonth.After(now) {
+		lastMonth := now.AddDate(0, -1, 0)
+		lastDay := time.Date(lastMonth.Year(), lastMonth.Month()+1, 0, hour, minute, second, 0, location)
+		if dayOfMonth > lastDay.Day() {
+			thisMonth = lastDay
+		} else {
+			thisMonth = time.Date(lastMonth.Year(), lastMonth.Month(), dayOfMonth, hour, minute, second, 0, location)
+		}
+	}
+
+	return thisMonth, nil
+}
+
+// getLastCronTime calculates the last cron execution time before now.
+func (v *Validator) getLastCronTime(crontab string, now time.Time, location *time.Location) (time.Time, error) {
+	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	schedule, err := parser.Parse(crontab)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid cron expression: %w", err)
+	}
+
+	// Start from a point in the past (1 year ago) and iterate forward
+	// to find the last execution time before now
+	startTime := now.AddDate(-1, 0, 0)
+	lastTime := schedule.Next(startTime)
+	var prevTime time.Time
+
+	// Iterate forward until we pass now
+	maxIterations := 10000 // Safety limit for very frequent cron expressions
+	for i := 0; i < maxIterations; i++ {
+		if lastTime.After(now) || lastTime.Equal(now) {
+			// We've passed now, so prevTime is the last execution before now
+			if prevTime.IsZero() {
+				return time.Time{}, fmt.Errorf("no cron execution found before now")
+			}
+			return prevTime, nil
+		}
+		prevTime = lastTime
+		lastTime = schedule.Next(lastTime)
+	}
+
+	// If we exhausted iterations, return the last time we found
+	if !prevTime.IsZero() {
+		return prevTime, nil
+	}
+
+	return time.Time{}, fmt.Errorf("failed to find last cron execution time")
+}
+
+// getLastDurationTime calculates the last duration-based execution time before now.
+func (v *Validator) getLastDurationTime(duration time.Duration, now time.Time) (time.Time, error) {
+	if duration <= 0 {
+		return time.Time{}, fmt.Errorf("invalid duration: %v", duration)
+	}
+
+	// For duration schedules, we assume they started at some point in the past.
+	// Calculate the last execution by finding the remainder when dividing now by duration.
+	// This is a simplification - in reality, we'd need to know when the schedule started.
+	// For validation purposes, we'll use a heuristic: assume it started at epoch or a reasonable start time.
+	// A better approach would be to track when schedules actually started, but for now we'll use a simple calculation.
+
+	// Use a reference point (e.g., start of current day) and calculate last execution
+	reference := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	elapsed := now.Sub(reference)
+	lastExecution := reference.Add(duration * time.Duration(elapsed/duration))
+
+	// If lastExecution is at or after now, go back one duration
+	if !lastExecution.Before(now) {
+		lastExecution = lastExecution.Add(-duration)
+	}
+
+	return lastExecution, nil
 }
 
 // getActualState retrieves the current state of the resource.
