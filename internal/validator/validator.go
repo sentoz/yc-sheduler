@@ -70,6 +70,17 @@ func (v *Validator) runOnce(ctx context.Context) {
 	now := time.Now()
 
 	for _, sch := range v.cfg.Schedules {
+		// Skip validation for duration-based schedules as they don't have
+		// a predictable expected state based on time
+		if sch.Type == "duration" {
+			log.Trace().
+				Str("schedule", sch.Name).
+				Str("resource_type", sch.Resource.Type).
+				Str("resource_id", sch.Resource.ID).
+				Msg("Skipping validation for duration-based schedule")
+			continue
+		}
+
 		log.Trace().
 			Str("schedule", sch.Name).
 			Str("resource_type", sch.Resource.Type).
