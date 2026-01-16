@@ -123,6 +123,62 @@ func (c *Client) getConnection(ctx context.Context, endpoint protoreflect.FullNa
 	return conn, nil
 }
 
+// getResource is a generic helper function that encapsulates the common logic
+// for Get operations (GetInstance, GetCluster, etc.).
+// It handles initialization check, connection retrieval, and error formatting.
+func getResource[T any](
+	ctx context.Context,
+	c *Client,
+	endpoint protoreflect.FullName,
+	operation, resourceID string,
+	getFunc func(context.Context, grpc.ClientConnInterface) (T, error),
+) (T, error) {
+	var zero T
+	if err := c.ensureInitialized(); err != nil {
+		return zero, err
+	}
+
+	conn, err := c.getConnection(ctx, endpoint, operation, resourceID)
+	if err != nil {
+		return zero, err
+	}
+
+	result, err := getFunc(ctx, conn)
+	if err != nil {
+		return zero, fmt.Errorf("yc: %s %s: %w", operation, resourceID, err)
+	}
+
+	return result, nil
+}
+
+// executeOperation is a helper function that encapsulates the common logic
+// for Start/Stop operations (StartInstance, StopInstance, StartCluster, StopCluster, etc.).
+// It handles initialization check, connection retrieval, operation execution,
+// and waiting for operation completion.
+func executeOperation(
+	ctx context.Context,
+	c *Client,
+	endpoint protoreflect.FullName,
+	operation, resourceID string,
+	opFunc func(context.Context, grpc.ClientConnInterface) (string, error),
+) error {
+	if err := c.ensureInitialized(); err != nil {
+		return err
+	}
+
+	conn, err := c.getConnection(ctx, endpoint, operation, resourceID)
+	if err != nil {
+		return err
+	}
+
+	operationID, err := opFunc(ctx, conn)
+	if err != nil {
+		return fmt.Errorf("yc: %s %s: %w", operation, resourceID, err)
+	}
+
+	return waitOperation(ctx, c.sdk, operationID)
+}
+
 // Shutdown gracefully shuts down the underlying SDK, releasing any
 // held resources and terminating background goroutines.
 func (c *Client) Shutdown(ctx context.Context) error {

@@ -8,82 +8,52 @@ import (
 	computepb "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 	operationpb "github.com/yandex-cloud/go-genproto/yandex/cloud/operation"
 	ycsdk "github.com/yandex-cloud/go-sdk/v2"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // StartInstance starts a compute instance in the specified folder.
 func (c *Client) StartInstance(ctx context.Context, folderID, instanceID string) error {
-	if err := c.ensureInitialized(); err != nil {
-		return err
-	}
-
 	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
 	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Start")
-	conn, err := c.getConnection(ctx, endpoint, "start instance", instanceID)
-	if err != nil {
-		return err
-	}
-
-	client := computepb.NewInstanceServiceClient(conn)
-
-	op, err := client.Start(ctx, &computepb.StartInstanceRequest{
-		InstanceId: instanceID,
+	return executeOperation(ctx, c, endpoint, "start instance", instanceID, func(ctx context.Context, conn grpc.ClientConnInterface) (string, error) {
+		client := computepb.NewInstanceServiceClient(conn)
+		op, err := client.Start(ctx, &computepb.StartInstanceRequest{
+			InstanceId: instanceID,
+		})
+		if err != nil {
+			return "", err
+		}
+		return op.GetId(), nil
 	})
-	if err != nil {
-		return fmt.Errorf("yc: start instance %s: %w", instanceID, err)
-	}
-
-	return waitOperation(ctx, c.sdk, op.GetId())
 }
 
 // StopInstance stops a compute instance in the specified folder.
 func (c *Client) StopInstance(ctx context.Context, folderID, instanceID string) error {
-	if err := c.ensureInitialized(); err != nil {
-		return err
-	}
-
 	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
 	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Stop")
-	conn, err := c.getConnection(ctx, endpoint, "stop instance", instanceID)
-	if err != nil {
-		return err
-	}
-
-	client := computepb.NewInstanceServiceClient(conn)
-
-	op, err := client.Stop(ctx, &computepb.StopInstanceRequest{
-		InstanceId: instanceID,
+	return executeOperation(ctx, c, endpoint, "stop instance", instanceID, func(ctx context.Context, conn grpc.ClientConnInterface) (string, error) {
+		client := computepb.NewInstanceServiceClient(conn)
+		op, err := client.Stop(ctx, &computepb.StopInstanceRequest{
+			InstanceId: instanceID,
+		})
+		if err != nil {
+			return "", err
+		}
+		return op.GetId(), nil
 	})
-	if err != nil {
-		return fmt.Errorf("yc: stop instance %s: %w", instanceID, err)
-	}
-
-	return waitOperation(ctx, c.sdk, op.GetId())
 }
 
 // GetInstance retrieves the current state of a compute instance.
 func (c *Client) GetInstance(ctx context.Context, folderID, instanceID string) (*computepb.Instance, error) {
-	if err := c.ensureInitialized(); err != nil {
-		return nil, err
-	}
-
 	// Use protoreflect.FullName as SDK v2 requires this format for endpoint resolution
 	endpoint := protoreflect.FullName("yandex.cloud.compute.v1.InstanceService.Get")
-	conn, err := c.getConnection(ctx, endpoint, "get instance", instanceID)
-	if err != nil {
-		return nil, err
-	}
-
-	client := computepb.NewInstanceServiceClient(conn)
-
-	instance, err := client.Get(ctx, &computepb.GetInstanceRequest{
-		InstanceId: instanceID,
+	return getResource(ctx, c, endpoint, "get instance", instanceID, func(ctx context.Context, conn grpc.ClientConnInterface) (*computepb.Instance, error) {
+		client := computepb.NewInstanceServiceClient(conn)
+		return client.Get(ctx, &computepb.GetInstanceRequest{
+			InstanceId: instanceID,
+		})
 	})
-	if err != nil {
-		return nil, fmt.Errorf("yc: get instance %s: %w", instanceID, err)
-	}
-
-	return instance, nil
 }
 
 // waitOperation polls the Operation service until the operation with the
