@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/woozymasta/yc-scheduler/internal/config"
-	"github.com/woozymasta/yc-scheduler/internal/executor"
 	"github.com/woozymasta/yc-scheduler/internal/logger"
 	"github.com/woozymasta/yc-scheduler/internal/metrics"
 	"github.com/woozymasta/yc-scheduler/internal/scheduler"
@@ -95,7 +94,7 @@ func run() error {
 	}
 	web.StartServer(ctx, addr, cfg.MetricsEnabled)
 
-	if err := registerSchedules(sched, client, cfg, opts.DryRun); err != nil {
+	if err := sched.RegisterSchedules(client, cfg, opts.DryRun); err != nil {
 		return err
 	}
 
@@ -109,31 +108,5 @@ func run() error {
 	}
 	log.Info().Msg("yc-scheduler stopped")
 
-	return nil
-}
-
-func registerSchedules(s *scheduler.Scheduler, client *yc.Client, cfg *config.Config, dryRun bool) error {
-	for _, sch := range cfg.Schedules {
-		if sch.Actions.Start != nil && sch.Actions.Start.Enabled {
-			def, err := scheduler.ScheduleToJobDefinition(sch, sch.Actions.Start)
-			if err != nil {
-				return fmt.Errorf("register schedule %q start action: %w", sch.Name, err)
-			}
-			name := sch.Name + ":start"
-			if err := s.AddJob(def, name, executor.Make(client, sch, "start", dryRun), ""); err != nil {
-				return err
-			}
-		}
-		if sch.Actions.Stop != nil && sch.Actions.Stop.Enabled {
-			def, err := scheduler.ScheduleToJobDefinition(sch, sch.Actions.Stop)
-			if err != nil {
-				return fmt.Errorf("register schedule %q stop action: %w", sch.Name, err)
-			}
-			name := sch.Name + ":stop"
-			if err := s.AddJob(def, name, executor.Make(client, sch, "stop", dryRun), ""); err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
