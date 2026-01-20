@@ -26,7 +26,7 @@ func main() {
 func run() error {
 	var opts struct {
 		Version bool   `long:"version" description:"Print version information and exit"`
-		Config  string `short:"c" long:"config" description:"Path to configuration file (YAML or JSON)"`
+		Config  string `short:"c" long:"config" env:"YC_SHEDULER_CONFIG" description:"Path to configuration file (YAML or JSON)"`
 		Token   string `short:"t" long:"token" env:"YC_TOKEN" description:"Yandex Cloud OAuth/IAM token (discouraged; prefer --sa-key)"`
 		SaKey   string `long:"sa-key" env:"YC_SA_KEY_FILE" description:"Path to Yandex Cloud service account key JSON file (preferred)"`
 		DryRun  bool   `short:"n" long:"dry-run" description:"Dry run mode: log planned actions without calling YC APIs"`
