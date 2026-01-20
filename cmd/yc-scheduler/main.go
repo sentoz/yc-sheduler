@@ -8,12 +8,12 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog/log"
 
-	"github.com/woozymasta/yc-scheduler/internal/app"
-	"github.com/woozymasta/yc-scheduler/internal/config"
-	"github.com/woozymasta/yc-scheduler/internal/logger"
-	"github.com/woozymasta/yc-scheduler/internal/signals"
-	"github.com/woozymasta/yc-scheduler/internal/vars"
-	"github.com/woozymasta/yc-scheduler/internal/yc"
+	"github.com/sentoz/yc-sheduler/internal/app"
+	"github.com/sentoz/yc-sheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/logger"
+	"github.com/sentoz/yc-sheduler/internal/signals"
+	"github.com/sentoz/yc-sheduler/internal/vars"
+	"github.com/sentoz/yc-sheduler/internal/yc"
 )
 
 func main() {

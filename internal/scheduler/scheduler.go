@@ -9,11 +9,11 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/rs/zerolog/log"
 
-	"github.com/woozymasta/yc-scheduler/internal/config"
-	"github.com/woozymasta/yc-scheduler/internal/executor"
-	"github.com/woozymasta/yc-scheduler/internal/metrics"
-	"github.com/woozymasta/yc-scheduler/internal/resource"
-	"github.com/woozymasta/yc-scheduler/internal/schedule"
+	"github.com/sentoz/yc-sheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/executor"
+	"github.com/sentoz/yc-sheduler/internal/metrics"
+	"github.com/sentoz/yc-sheduler/internal/resource"
+	"github.com/sentoz/yc-sheduler/internal/schedule"
 )
 
 // Interface defines the interface for scheduler operations.

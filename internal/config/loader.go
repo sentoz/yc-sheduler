@@ -13,7 +13,7 @@ import (
 	jschema "github.com/santhosh-tekuri/jsonschema/v6"
 	jamle "github.com/woozymasta/jamle"
 
-	"github.com/woozymasta/yc-scheduler/static"
+	"github.com/sentoz/yc-sheduler/static"
 )
 
 var (

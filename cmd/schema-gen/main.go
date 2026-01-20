@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/invopop/jsonschema"
-	"github.com/woozymasta/yc-scheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/config"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 		prettyPrint bool
 	)
 	flag.StringVar(&outFile, "out", "", "output file path (default: stdout)")
-	flag.StringVar(&modulePath, "module", "github.com/woozymasta/yc-scheduler", "go module path (for extracting comments)")
+	flag.StringVar(&modulePath, "module", "github.com/sentoz/yc-sheduler", "go module path (for extracting comments)")
 	flag.BoolVar(&prettyPrint, "pretty", true, "pretty print JSON output")
 	flag.Parse()
 

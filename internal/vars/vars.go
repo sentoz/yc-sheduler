@@ -20,8 +20,8 @@ var (
 	// BuildTime is the application build time in RFC3339 UTC, defaults to 1970-01-01.
 	BuildTime = time.Unix(0, 0)
 
-	// URL is the repository URL (https), defaults to "https://github.com/woozymasta/yc-scheduler".
-	URL = "https://github.com/woozymasta/yc-scheduler"
+	// URL is the repository URL (https), defaults to "https://github.com/sentoz/yc-sheduler".
+	URL = "https://github.com/sentoz/yc-sheduler"
 
 	// _buildTime is an internal string passed via ldflags that overrides BuildTime when set.
 	_buildTime string

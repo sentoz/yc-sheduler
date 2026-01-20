@@ -6,8 +6,8 @@ import (
 	computepb "github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 	k8spb "github.com/yandex-cloud/go-genproto/yandex/cloud/k8s/v1"
 
-	"github.com/woozymasta/yc-scheduler/internal/config"
-	"github.com/woozymasta/yc-scheduler/internal/yc"
+	"github.com/sentoz/yc-sheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/yc"
 )
 
 // StateChecker provides an interface for checking resource state.

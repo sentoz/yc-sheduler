@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
-	"github.com/woozymasta/yc-scheduler/internal/vars"
+	"github.com/sentoz/yc-sheduler/internal/vars"
 )
 
 // BuildInfoHandler возвращает JSON с информацией о сборке приложения

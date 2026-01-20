@@ -7,7 +7,7 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/robfig/cron/v3"
 
-	"github.com/woozymasta/yc-scheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/config"
 )
 
 // ParseTime parses a time string (HH:MM or HH:MM:SS) and returns gocron.AtTimes.

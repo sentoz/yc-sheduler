@@ -7,9 +7,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/woozymasta/yc-scheduler/internal/config"
-	"github.com/woozymasta/yc-scheduler/internal/metrics"
-	"github.com/woozymasta/yc-scheduler/internal/resource"
+	"github.com/sentoz/yc-sheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/metrics"
+	"github.com/sentoz/yc-sheduler/internal/resource"
 )
 
 // Make returns a job function that executes the given action for the schedule's resource.

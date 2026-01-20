@@ -7,12 +7,12 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/woozymasta/yc-scheduler/internal/config"
-	"github.com/woozymasta/yc-scheduler/internal/executor"
-	"github.com/woozymasta/yc-scheduler/internal/metrics"
-	"github.com/woozymasta/yc-scheduler/internal/resource"
-	"github.com/woozymasta/yc-scheduler/internal/schedule"
-	"github.com/woozymasta/yc-scheduler/internal/scheduler"
+	"github.com/sentoz/yc-sheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/executor"
+	"github.com/sentoz/yc-sheduler/internal/metrics"
+	"github.com/sentoz/yc-sheduler/internal/resource"
+	"github.com/sentoz/yc-sheduler/internal/schedule"
+	"github.com/sentoz/yc-sheduler/internal/scheduler"
 )
 
 // Interface defines the interface for validator operations.

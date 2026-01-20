@@ -3,8 +3,8 @@ package resource
 import (
 	"context"
 
-	"github.com/woozymasta/yc-scheduler/internal/config"
-	"github.com/woozymasta/yc-scheduler/internal/yc"
+	"github.com/sentoz/yc-sheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/yc"
 )
 
 // Operator provides an interface for performing operations on resources.

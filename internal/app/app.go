@@ -6,13 +6,13 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/woozymasta/yc-scheduler/internal/config"
-	"github.com/woozymasta/yc-scheduler/internal/metrics"
-	"github.com/woozymasta/yc-scheduler/internal/resource"
-	"github.com/woozymasta/yc-scheduler/internal/scheduler"
-	"github.com/woozymasta/yc-scheduler/internal/validator"
-	"github.com/woozymasta/yc-scheduler/internal/web"
-	"github.com/woozymasta/yc-scheduler/internal/yc"
+	"github.com/sentoz/yc-sheduler/internal/config"
+	"github.com/sentoz/yc-sheduler/internal/metrics"
+	"github.com/sentoz/yc-sheduler/internal/resource"
+	"github.com/sentoz/yc-sheduler/internal/scheduler"
+	"github.com/sentoz/yc-sheduler/internal/validator"
+	"github.com/sentoz/yc-sheduler/internal/web"
+	"github.com/sentoz/yc-sheduler/internal/yc"
 )
 
 // App represents the main application with all its dependencies.

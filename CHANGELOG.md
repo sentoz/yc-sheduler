@@ -40,8 +40,8 @@ and this project adheres to [Semantic Versioning][].
 
 * Base project struct
 
-[0.1.0]: https://github.com/WoozyMasta/yc-scheduler/tree/v0.1.0
-[0.0.0]: https://github.com/WoozyMasta/yc-scheduler/tree/v0.0.0
+[0.1.0]: https://github.com/sentoz/yc-sheduler/tree/v0.1.0
+[0.0.0]: https://github.com/sentoz/yc-sheduler/tree/v0.0.0
 
 <!--links-->
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
