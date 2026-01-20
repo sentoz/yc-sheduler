@@ -1,0 +1,19 @@
+.git
+.github
+.vscode
+.idea
+
+# Local build output
+build
+coverage.out
+
+# OS/editor noise
+*.swp
+*~
+.DS_Store
+
+# Docs (not needed for build)
+README.md
+CHANGELOG.md
+LICENSE
+
