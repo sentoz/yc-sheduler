@@ -1,5 +1,6 @@
 FROM alpine:3.21 AS certs
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache ca-certificates && update-ca-certificates
 
 
