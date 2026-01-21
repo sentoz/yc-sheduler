@@ -9,7 +9,7 @@ FROM scratch
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
-# Expect prebuilt binary from `make build` at build/yc-scheduler.
+# Expect prebuilt linux/amd64 binary from `make release` at build/yc-scheduler-linux-amd64.
 COPY build/yc-scheduler-linux-amd64 /yc-scheduler
 
 USER 65532:65532

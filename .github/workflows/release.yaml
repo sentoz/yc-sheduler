@@ -46,9 +46,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Build binary for Docker image
-        run: make build
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: yc-scheduler-binaries
+          path: .
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
