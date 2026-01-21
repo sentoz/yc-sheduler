@@ -1,28 +1,31 @@
 package config
 
 // Config represents the main application configuration.
+//
+//betteralign:ignore
 type Config struct {
-	// Schedules contains all scheduled tasks.
-	Schedules []Schedule `yaml:"schedules" json:"schedules" jsonschema:"minItems=1"`
-
-	// MetricsEnabled toggles Prometheus metrics HTTP server.
-	MetricsEnabled bool `yaml:"metrics_enabled,omitempty" json:"metrics_enabled,omitempty" default:"false" jsonschema:"default=false"`
-
-	// MetricsPort defines the port for the metrics HTTP server.
-	MetricsPort int `yaml:"metrics_port,omitempty" json:"metrics_port,omitempty" default:"9090" jsonschema:"default=9090"`
-
-	// ValidationInterval defines how often the state validator runs.
-	ValidationInterval Duration `yaml:"validation_interval,omitempty" json:"validation_interval,omitempty" default:"10m" jsonschema:"example=10m"`
 
 	// Timezone specifies the timezone for schedules (IANA timezone name).
 	// If empty, system timezone is used.
 	Timezone Timezone `yaml:"timezone,omitempty" json:"timezone,omitempty" jsonschema:"example=Europe/Moscow"`
 
-	// MaxConcurrentJobs limits the number of concurrent job executions.
-	MaxConcurrentJobs int `yaml:"max_concurrent_jobs,omitempty" json:"max_concurrent_jobs,omitempty" default:"5" jsonschema:"default=5,minimum=1"`
+	// Schedules contains all scheduled tasks.
+	Schedules []Schedule `yaml:"schedules" json:"schedules" jsonschema:"minItems=1"`
+
+	// ValidationInterval defines how often the state validator runs.
+	ValidationInterval Duration `yaml:"validation_interval,omitempty" json:"validation_interval,omitempty" default:"10m" jsonschema:"example=10m"`
 
 	// ShutdownTimeout defines the timeout for graceful shutdown.
 	ShutdownTimeout Duration `yaml:"shutdown_timeout,omitempty" json:"shutdown_timeout,omitempty" default:"5m" jsonschema:"example=5m"`
+
+	// MetricsPort defines the port for the metrics HTTP server.
+	MetricsPort int `yaml:"metrics_port,omitempty" json:"metrics_port,omitempty" default:"9090" jsonschema:"default=9090"`
+
+	// MaxConcurrentJobs limits the number of concurrent job executions.
+	MaxConcurrentJobs int `yaml:"max_concurrent_jobs,omitempty" json:"max_concurrent_jobs,omitempty" default:"5" jsonschema:"default=5,minimum=1"`
+
+	// MetricsEnabled toggles Prometheus metrics HTTP server.
+	MetricsEnabled bool `yaml:"metrics_enabled,omitempty" json:"metrics_enabled,omitempty" default:"false" jsonschema:"default=false"`
 }
 
 // Schedule defines a scheduled task for managing cloud resources.
@@ -76,9 +79,6 @@ type Actions struct {
 
 // ActionConfig defines configuration for a specific action.
 type ActionConfig struct {
-	// Enabled indicates whether this action is enabled.
-	Enabled bool `yaml:"enabled" json:"enabled" jsonschema:"example=true"`
-
 	// Time specifies the time to perform the action.
 	// For daily, weekly, monthly schedules: HH:MM or HH:MM:SS format (e.g., "09:00").
 	Time string `yaml:"time,omitempty" json:"time,omitempty"`
@@ -89,6 +89,9 @@ type ActionConfig struct {
 	// Day specifies the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday) for weekly schedules,
 	// or the day of the month (1-31) for monthly schedules.
 	Day int `yaml:"day,omitempty" json:"day,omitempty" jsonschema:"example=1"`
+
+	// Enabled indicates whether this action is enabled.
+	Enabled bool `yaml:"enabled" json:"enabled" jsonschema:"example=true"`
 }
 
 // CronJobConfig defines configuration for a cron-based schedule.
