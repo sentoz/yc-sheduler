@@ -117,6 +117,29 @@ schedules:
 
 Полный пример конфигурации см. в [`config.example.yaml`](config.example.yaml).
 
+### Развёртывание в Kubernetes
+
+Для развёртывания выполните:
+
+```bash
+# (опционально) создать namespace
+kubectl create namespace yc-scheduler
+
+# создать Secret с ключом сервисного аккаунта
+kubectl -n yc-scheduler create secret generic yc-sa-key \
+  --from-file=sa-key.json=/path/to/sa-key.json
+
+# развернуть yc-scheduler
+kubectl apply -k deploy/
+```
+
+Внутри контейнера:
+
+- конфигурация будет доступна по пути `/config/config.yaml`;
+- ключ сервисного аккаунта — по пути `/sa/sa-key.json`;
+- путь до этих файлов также проброшен через переменные окружения
+  `YC_SHEDULER_CONFIG` и `YC_SA_KEY_FILE`.
+
 ### Типы расписаний
 
 - **daily** — ежедневно в указанное время
