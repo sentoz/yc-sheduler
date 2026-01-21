@@ -105,7 +105,8 @@ ehthumbs_vista.db
 
 # Folder config file
 [Dd]esktop.ini
-config.yaml
+/config.yaml
+! deploy/config.yaml
 
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
