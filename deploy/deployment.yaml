@@ -18,7 +18,7 @@ spec:
       containers:
         - name: yc-scheduler
           image: ghcr.io/sentoz/yc-sheduler:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           envFrom:
             - configMapRef:
                 name: yc-scheduler-env
