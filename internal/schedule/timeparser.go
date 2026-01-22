@@ -164,10 +164,20 @@ func GetLastMonthlyTime(timeStr string, dayOfMonth int, now time.Time, location 
 
 // GetLastCronTime calculates the last cron execution time before now.
 func GetLastCronTime(crontab string, now time.Time) (time.Time, error) {
-	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
-	schedule, err := parser.Parse(crontab)
+	// Try parsing with seconds first (6 fields), then fall back to standard format (5 fields)
+	var schedule cron.Schedule
+	var err error
+
+	// First try with seconds (6 fields)
+	parserWithSeconds := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	schedule, err = parserWithSeconds.Parse(crontab)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid cron expression: %w", err)
+		// If that fails, try standard format (5 fields)
+		parserStandard := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+		schedule, err = parserStandard.Parse(crontab)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("invalid cron expression: %w", err)
+		}
 	}
 
 	// Start from a point in the past (1 year ago) and iterate forward

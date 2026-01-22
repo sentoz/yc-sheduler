@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning][].
 
 ## _Untagged_
 
+## [0.1.3][] - 2026-01-22
+
+### Fixed
+
+* Fixed cron expression parsing in validator to support both 5-field (standard)
+  and 6-field (with seconds) formats. Previously, the validator only accepted
+  6-field cron expressions, causing errors for standard 5-field expressions like
+  `0 8 * * 1-5`.
+
 ## [0.1.2][] - 2026-01-22
 
 ### Fixed
@@ -61,6 +70,7 @@ and this project adheres to [Semantic Versioning][].
 
 * Base project struct
 
+[0.1.3]: https://github.com/sentoz/yc-sheduler/tree/v0.1.3
 [0.1.2]: https://github.com/sentoz/yc-sheduler/tree/v0.1.2
 [0.1.1]: https://github.com/sentoz/yc-sheduler/tree/v0.1.1
 [0.1.0]: https://github.com/sentoz/yc-sheduler/tree/v0.1.0
