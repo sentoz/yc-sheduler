@@ -5,10 +5,6 @@
   "$defs": {
     "ActionConfig": {
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enabled indicates whether this action is enabled."
-        },
         "time": {
           "type": "string",
           "description": "Time specifies the time to perform the action.\nFor daily, weekly, monthly schedules: HH:MM or HH:MM:SS format (e.g., \"09:00\")."
@@ -23,6 +19,10 @@
           "examples": [
             1
           ]
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enabled indicates whether this action is enabled."
         }
       },
       "additionalProperties": false,
@@ -49,6 +49,10 @@
     },
     "Config": {
       "properties": {
+        "timezone": {
+          "$ref": "#/$defs/Timezone",
+          "description": "Timezone specifies the timezone for schedules (IANA timezone name).\nIf empty, system timezone is used."
+        },
         "schedules": {
           "items": {
             "$ref": "#/$defs/Schedule"
@@ -57,23 +61,18 @@
           "minItems": 1,
           "description": "Schedules contains all scheduled tasks."
         },
-        "metrics_enabled": {
-          "type": "boolean",
-          "description": "MetricsEnabled toggles Prometheus metrics HTTP server.",
-          "default": false
+        "validation_interval": {
+          "$ref": "#/$defs/Duration",
+          "description": "ValidationInterval defines how often the state validator runs."
+        },
+        "shutdown_timeout": {
+          "$ref": "#/$defs/Duration",
+          "description": "ShutdownTimeout defines the timeout for graceful shutdown."
         },
         "metrics_port": {
           "type": "integer",
           "description": "MetricsPort defines the port for the metrics HTTP server.",
           "default": 9090
-        },
-        "validation_interval": {
-          "$ref": "#/$defs/Duration",
-          "description": "ValidationInterval defines how often the state validator runs."
-        },
-        "timezone": {
-          "$ref": "#/$defs/Timezone",
-          "description": "Timezone specifies the timezone for schedules (IANA timezone name).\nIf empty, system timezone is used."
         },
         "max_concurrent_jobs": {
           "type": "integer",
@@ -81,9 +80,10 @@
           "description": "MaxConcurrentJobs limits the number of concurrent job executions.",
           "default": 5
         },
-        "shutdown_timeout": {
-          "$ref": "#/$defs/Duration",
-          "description": "ShutdownTimeout defines the timeout for graceful shutdown."
+        "metrics_enabled": {
+          "type": "boolean",
+          "description": "MetricsEnabled toggles Prometheus metrics HTTP server.",
+          "default": false
         }
       },
       "additionalProperties": false,
