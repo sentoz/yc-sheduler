@@ -1,9 +1,9 @@
-# yaml-language-server: $schema=./static/schemas/config.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/sentoz/yc-sheduler/refs/heads/master/static/schemas/config.json
 #
 # YC Scheduler Configuration Example
 #
 # This file demonstrates the configuration structure for yc-scheduler.
-# The JSON Schema is available at: ./static/schemas/config.json
+# The JSON Schema is available at: https://raw.githubusercontent.com/sentoz/yc-sheduler/refs/heads/master/static/schemas/config.json
 #
 # To validate this configuration against the schema, you can use:
 # - VS Code with YAML extension (automatic validation)
