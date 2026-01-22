@@ -1,14 +1,7 @@
 FROM alpine:3.21 AS certs
 
 # hadolint ignore=DL3018
-RUN apk add --no-cache ca-certificates && update-ca-certificates
-
-
-FROM alpine:3.21 AS tzdata
-
-# Install timezone data
-RUN apk add --no-cache tzdata
-
+RUN apk add --no-cache ca-certificates tzdata && update-ca-certificates
 
 FROM scratch
 
@@ -17,7 +10,7 @@ COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 # Required for timezone support (IANA timezone database).
-COPY --from=tzdata /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=certs /usr/share/zoneinfo /usr/share/zoneinfo
 ENV ZONEINFO=/usr/share/zoneinfo
 
 # Expect prebuilt linux/amd64 binary from `make release` at build/yc-scheduler-linux-amd64.
