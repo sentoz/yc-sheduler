@@ -82,40 +82,34 @@ validation_interval: 10m              # Интервал проверки сос
 shutdown_timeout: 5m                  # Таймаут graceful shutdown (по умолчанию 5m)
 metrics_enabled: false                # Включить Prometheus метрики (по умолчанию false)
 metrics_port: 9090                    # Порт для метрик (по умолчанию 9090)
+schedules_dir: ./examples/schedules    # Каталог с schedule-манифестами YAML
+```
 
-schedules:
-  - name: vm-production-start
-    type: daily
-    resource:
-      type: vm
-      id: fhm1234567890abcdef
-      folder_id: b1g1234567890abcdef
-    actions:
-      start:
-        enabled: true
-        time: 09:00
-      stop:
-        enabled: false
+Пример schedule-документа (`examples/schedules/vm-daily.yaml`):
 
-  # Пример с разными расписаниями для start и stop
-  - name: k8s-cluster-maintenance
-    type: weekly
-    resource:
-      type: k8s_cluster
-      id: catabcdef1234567890
-      folder_id: b1g1234567890abcdef
-    actions:
-      stop:
-        enabled: true
-        day: 0  # Sunday
-        time: 02:00
-      start:
-        enabled: true
-        day: 1  # Monday
-        time: 02:15
+```yaml
+apiVersion: scheduler.yc/v1alpha1
+kind: Schedule
+metadata:
+  name: vm-production-workhours
+spec:
+  type: daily
+  resource:
+    type: vm
+    id: fhm1234567890abcdef
+    folder_id: b1g1234567890abcdef
+  actions:
+    start:
+      enabled: true
+      time: 09:00
+    stop:
+      enabled: true
+      time: 18:00
 ```
 
 Полный пример конфигурации см. в [`config.example.yaml`](config.example.yaml).
+Примеры schedule-манифестов см. в [`examples/schedules/`](examples/schedules).
+Один YAML-файл может содержать несколько документов через `---`.
 
 ### Развёртывание в Kubernetes
 
@@ -136,6 +130,7 @@ kubectl apply -k deploy/
 Внутри контейнера:
 
 - конфигурация будет доступна по пути `/config/config.yaml`;
+- schedule-манифесты будут доступны по пути `/schedules/*.yaml`;
 - ключ сервисного аккаунта — по пути `/sa/sa-key.json`;
 - путь до этих файлов также проброшен через переменные окружения
   `YC_SHEDULER_CONFIG` и `YC_SA_KEY_FILE`.

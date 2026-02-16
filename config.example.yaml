@@ -2,15 +2,9 @@
 #
 # YC Scheduler Configuration Example
 #
-# This file demonstrates the configuration structure for yc-scheduler.
-# The JSON Schema is available at: https://raw.githubusercontent.com/sentoz/yc-sheduler/refs/heads/master/static/schemas/config.json
-#
-# To validate this configuration against the schema, you can use:
-# - VS Code with YAML extension (automatic validation)
-# - yamllint with schema validation
-# - Online JSON Schema validators
-#
-# For more information, see: https://json-schema.org/
+# Main config now contains global settings and a directory with schedule manifests.
+# Schedule documents are validated by:
+# https://raw.githubusercontent.com/sentoz/yc-sheduler/refs/heads/master/static/schemas/schedule.json
 
 # Global configuration options
 timezone: Europe/Moscow # Timezone for schedules (default: system timezone)
@@ -20,73 +14,6 @@ shutdown_timeout: 5m # Graceful shutdown timeout (default: 5m)
 metrics_enabled: false # Enable Prometheus metrics HTTP server (default: false)
 metrics_port: 9090 # Port for metrics server (default: 9090)
 
-schedules:
-  # Example: Daily schedule to start a VM at 9:00 AM
-  - name: vm-production-start
-    type: daily
-    resource:
-      type: vm
-      id: fhm1234567890abcdef
-      folder_id: b1g1234567890abcdef
-    actions:
-      start:
-        enabled: true
-        time: 09:00
-      stop:
-        enabled: false
-
-  # Example: Cron schedule to stop a VM every day at 18:00
-  - name: vm-production-stop
-    type: cron
-    resource:
-      type: vm
-      id: fhm1234567890abcdef
-      folder_id: b1g1234567890abcdef
-    actions:
-      stop:
-        enabled: true
-        crontab: 0 18 * * *
-
-  # Example: Weekly schedule to stop a VM every Monday at 08:00
-  - name: vm-weekly-stop
-    type: weekly
-    resource:
-      type: vm
-      id: fhm0987654321fedcba
-      folder_id: b1g1234567890abcdef
-    actions:
-      stop:
-        enabled: true
-        day: 1 # Monday (0=Sunday, 1=Monday, ..., 6=Saturday)
-        time: 08:00
-
-  # Example: Monthly schedule to start a VM on the 1st day of each month
-  - name: vm-monthly-start
-    type: monthly
-    resource:
-      type: vm
-      id: fhmabcdef1234567890
-      folder_id: b1g1234567890abcdef
-    actions:
-      start:
-        enabled: true
-        day: 1
-        time: 00:00
-
-  # Example: Kubernetes Cluster schedule
-  # Note: Each action can have its own schedule parameters
-  - name: k8s-cluster-maintenance
-    type: weekly
-    resource:
-      type: k8s_cluster
-      id: catabcdef1234567890
-      folder_id: b1g1234567890abcdef
-    actions:
-      stop:
-        enabled: true
-        day: 0 # Sunday
-        time: 02:00
-      start:
-        enabled: true
-        day: 1 # Monday
-        time: 02:15
+# Directory with schedule manifests (*.yaml / *.yml).
+# Each file may contain one or more YAML documents separated by "---".
+schedules_dir: ./examples/schedules
