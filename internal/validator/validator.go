@@ -3,6 +3,7 @@ package validator
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -25,9 +26,11 @@ type Interface interface {
 type Validator struct {
 	stateChecker resource.StateChecker
 	operator     resource.Operator
-	cfg          *config.Config
 	scheduler    scheduler.Interface
+	cfg          *config.Config
 	metrics      *metrics.Metrics
+	schedules    []config.Schedule
+	mu           sync.RWMutex
 	dryRun       bool
 }
 
@@ -44,11 +47,24 @@ func New(stateChecker resource.StateChecker, operator resource.Operator, cfg *co
 		scheduler:    sched,
 		metrics:      m,
 		dryRun:       dryRun,
+		schedules:    append([]config.Schedule(nil), cfg.Schedules...),
 	}
 	log.Info().
 		Int("schedules", len(cfg.Schedules)).
 		Msg("Validator initialized")
 	return v
+}
+
+// UpdateSchedules replaces schedules used by validation loop.
+func (v *Validator) UpdateSchedules(schedules []config.Schedule) {
+	if v == nil {
+		return
+	}
+
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	v.schedules = append([]config.Schedule(nil), schedules...)
 }
 
 // Start runs validation in the background until the context is canceled.
@@ -79,8 +95,9 @@ func (v *Validator) Start(ctx context.Context, interval time.Duration) {
 
 func (v *Validator) runOnce(ctx context.Context) {
 	now := time.Now()
+	schedules := v.getSchedulesSnapshot()
 
-	for _, sch := range v.cfg.Schedules {
+	for _, sch := range schedules {
 		log.Trace().
 			Str("schedule", sch.Name).
 			Str("resource_type", sch.Resource.Type).
@@ -159,6 +176,13 @@ func (v *Validator) runOnce(ctx context.Context) {
 				Msg("Resource state matches expected state")
 		}
 	}
+}
+
+func (v *Validator) getSchedulesSnapshot() []config.Schedule {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	return append([]config.Schedule(nil), v.schedules...)
 }
 
 // determineExpectedState determines the expected state and corrective action

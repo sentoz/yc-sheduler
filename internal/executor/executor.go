@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -11,6 +12,38 @@ import (
 	"github.com/sentoz/yc-sheduler/internal/metrics"
 	"github.com/sentoz/yc-sheduler/internal/resource"
 )
+
+var operationLocks = newInFlightLocks()
+
+type inFlightLocks struct {
+	locks map[string]struct{}
+	mu    sync.Mutex
+}
+
+func newInFlightLocks() *inFlightLocks {
+	return &inFlightLocks{
+		locks: make(map[string]struct{}),
+	}
+}
+
+func (l *inFlightLocks) tryLock(key string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if _, exists := l.locks[key]; exists {
+		return false
+	}
+
+	l.locks[key] = struct{}{}
+	return true
+}
+
+func (l *inFlightLocks) unlock(key string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	delete(l.locks, key)
+}
 
 // Make returns a job function that executes the given action for the schedule's resource.
 // The returned function has no parameters to match gocron's expectations.
@@ -23,6 +56,22 @@ func Make(stateChecker resource.StateChecker, operator resource.Operator, sch co
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 		resourceType := resource.Type
+		lockKey := resourceType + ":" + resource.ID + ":" + action
+
+		if !operationLocks.tryLock(lockKey) {
+			log.Info().
+				Str("schedule", sch.Name).
+				Str("resource_type", resourceType).
+				Str("resource_id", resource.ID).
+				Str("action", action).
+				Msg("Operation for resource/action is already in progress, skipping")
+			if m != nil {
+				m.IncOperation(resourceType, action, "skipped")
+				m.IncSchedulerSkip(resourceType, action, "in_flight")
+			}
+			return
+		}
+		defer operationLocks.unlock(lockKey)
 
 		if dryRun {
 			log.Info().

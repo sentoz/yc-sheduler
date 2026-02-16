@@ -3,11 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
 	"github.com/sentoz/yc-sheduler/internal/config"
 	"github.com/sentoz/yc-sheduler/internal/metrics"
+	"github.com/sentoz/yc-sheduler/internal/reloader"
 	"github.com/sentoz/yc-sheduler/internal/resource"
 	"github.com/sentoz/yc-sheduler/internal/scheduler"
 	"github.com/sentoz/yc-sheduler/internal/validator"
@@ -25,8 +27,11 @@ type App struct {
 	validator    *validator.Validator
 	metrics      *metrics.Metrics
 	webServer    *web.Server
+	reloader     *reloader.Reloader
 	dryRun       bool
 }
+
+const schedulesReloadInterval = 10 * time.Second
 
 // New creates and initializes a new App instance.
 func New(cfg *config.Config, client *yc.Client, dryRun bool) (*App, error) {
@@ -62,6 +67,13 @@ func New(cfg *config.Config, client *yc.Client, dryRun bool) (*App, error) {
 		webSrv = nil
 	}
 
+	schedulesReloader, err := reloader.New(cfg.SchedulesDir, schedulesReloadInterval, func(ctx context.Context) error {
+		return reloadSchedules(ctx, cfg.SchedulesDir, sched, stateChecker, operator, val, dryRun, m, cfg)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create schedules reloader: %w", err)
+	}
+
 	return &App{
 		cfg:          cfg,
 		client:       client,
@@ -71,6 +83,7 @@ func New(cfg *config.Config, client *yc.Client, dryRun bool) (*App, error) {
 		validator:    val,
 		metrics:      m,
 		webServer:    webSrv,
+		reloader:     schedulesReloader,
 		dryRun:       dryRun,
 	}, nil
 }
@@ -89,6 +102,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	// Start validator
 	a.validator.Start(ctx, a.cfg.ValidationInterval.Std())
+	go a.reloader.Start(ctx)
 
 	log.Info().Msg("yc-scheduler started")
 
@@ -98,6 +112,32 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	log.Info().Msg("yc-scheduler stopped")
+	return nil
+}
+
+func reloadSchedules(
+	ctx context.Context,
+	schedulesDir string,
+	sched *scheduler.Scheduler,
+	stateChecker resource.StateChecker,
+	operator resource.Operator,
+	val *validator.Validator,
+	dryRun bool,
+	m *metrics.Metrics,
+	cfg *config.Config,
+) error {
+	schedules, err := config.LoadSchedules(ctx, schedulesDir)
+	if err != nil {
+		return fmt.Errorf("load schedules: %w", err)
+	}
+
+	if err := sched.ReplaceSchedules(stateChecker, operator, schedules, dryRun, m); err != nil {
+		return fmt.Errorf("replace schedules: %w", err)
+	}
+
+	cfg.Schedules = append([]config.Schedule(nil), schedules...)
+	val.UpdateSchedules(schedules)
+
 	return nil
 }
 
