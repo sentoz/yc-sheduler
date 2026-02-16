@@ -1,0 +1,17 @@
+apiVersion: scheduler.yc/v1alpha1
+kind: Schedule
+metadata:
+  name: vm-production-workhours
+spec:
+  type: daily
+  resource:
+    type: vm
+    id: fhm1234567890abcdef
+    folder_id: b1g1234567890abcdef
+  actions:
+    start:
+      enabled: true
+      time: 09:00
+    stop:
+      enabled: true
+      time: 18:00

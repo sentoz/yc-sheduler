@@ -10,6 +10,9 @@ configMapGenerator:
   - name: yc-scheduler-config
     files:
       - config.yaml
+  - name: yc-scheduler-schedules
+    files:
+      - schedules/vm-production.yaml
   - name: yc-scheduler-env
     envs:
       - config.env

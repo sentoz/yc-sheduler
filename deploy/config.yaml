@@ -4,15 +4,4 @@ validation_interval: 10m
 shutdown_timeout: 5m
 metrics_enabled: false
 metrics_port: 9090
-
-schedules:
-  - name: vm-production-start
-    type: daily
-    resource:
-      type: vm
-      id: fhm1234567890abcdef
-      folder_id: b1g1234567890abcdef
-    actions:
-      start:
-        enabled: true
-        time: 09:00
+schedules_dir: /schedules
