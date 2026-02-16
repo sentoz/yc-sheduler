@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning][].
 * Added a dedicated schedule JSON schema at `static/schemas/schedule.json`.
 * Added schedule examples in `examples/schedules/` and deployment examples in
   `deploy/schedules/`.
+* Added automatic reload of schedule manifests on changes in `schedules_dir`
+  without restarting the process.
 
 ### Changed
 

@@ -134,6 +134,15 @@ func Load(_ context.Context, path string) (*Config, error) {
 	return &cfg, nil
 }
 
+// LoadSchedules reads and validates schedule manifests from a directory.
+func LoadSchedules(_ context.Context, path string) ([]Schedule, error) {
+	if path == "" {
+		return nil, fmt.Errorf("%w: empty schedules directory path", ErrConfigNotFound)
+	}
+
+	return loadSchedules(path)
+}
+
 // validate checks configuration against the embedded JSON schema and
 // returns a wrapped ErrSchemaValidation on failure.
 func validate(cfg *Config) error {

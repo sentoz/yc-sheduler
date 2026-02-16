@@ -4,6 +4,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -28,8 +29,11 @@ type Interface interface {
 // Scheduler wraps gocron.Scheduler and provides a higher-level API
 // tailored for yc-scheduler configuration.
 type Scheduler struct {
-	s gocron.Scheduler
+	s  gocron.Scheduler
+	mu sync.Mutex
 }
+
+const managedScheduleTag = "managed_schedule"
 
 // Ensure Scheduler implements Interface.
 var _ Interface = (*Scheduler)(nil)
@@ -78,16 +82,10 @@ func (s *Scheduler) AddJob(def gocron.JobDefinition, name string, fn func(), tim
 		return fmt.Errorf("scheduler: not initialized")
 	}
 
-	_, err := s.s.NewJob(def, gocron.NewTask(fn), gocron.WithName(name))
-	if err != nil {
-		return fmt.Errorf("scheduler: add job %q: %w", name, err)
-	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	log.Debug().
-		Str("job_name", name).
-		Msg("Scheduler job registered")
-
-	return nil
+	return s.addJobUnlocked(def, name, fn)
 }
 
 // Start starts the scheduler and blocks until the context is canceled.
@@ -101,6 +99,10 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	log.Info().Msg("Scheduler event loop started")
 
 	<-ctx.Done()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if err := s.s.Shutdown(); err != nil {
 		log.Warn().Err(err).Msg("Scheduler shutdown error")
 	}
@@ -115,6 +117,9 @@ func (s *Scheduler) Stop() {
 	if s == nil || s.s == nil {
 		return
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if err := s.s.Shutdown(); err != nil {
 		log.Warn().Err(err).Msg("Scheduler stop error")
 	}
@@ -126,6 +131,9 @@ func (s *Scheduler) AddOneTimeJob(name string, fn func()) error {
 	if s == nil || s.s == nil {
 		return fmt.Errorf("scheduler: not initialized")
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	_, err := s.s.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
@@ -151,28 +159,81 @@ func (s *Scheduler) RegisterSchedules(stateChecker resource.StateChecker, operat
 		return fmt.Errorf("scheduler: not initialized")
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for _, sch := range cfg.Schedules {
-		if sch.Actions.Start != nil && sch.Actions.Start.Enabled {
-			def, err := ScheduleToJobDefinition(sch, sch.Actions.Start)
-			if err != nil {
-				return fmt.Errorf("register schedule %q start action: %w", sch.Name, err)
-			}
-			name := sch.Name + ":start"
-			if err := s.AddJob(def, name, executor.Make(stateChecker, operator, sch, "start", dryRun, m), ""); err != nil {
-				return err
-			}
-		}
-		if sch.Actions.Stop != nil && sch.Actions.Stop.Enabled {
-			def, err := ScheduleToJobDefinition(sch, sch.Actions.Stop)
-			if err != nil {
-				return fmt.Errorf("register schedule %q stop action: %w", sch.Name, err)
-			}
-			name := sch.Name + ":stop"
-			if err := s.AddJob(def, name, executor.Make(stateChecker, operator, sch, "stop", dryRun, m), ""); err != nil {
-				return err
-			}
+		if err := registerScheduleUnlocked(s, stateChecker, operator, sch, dryRun, m); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+// ReplaceSchedules replaces all regular scheduled jobs with a new set from
+// manifests. In-flight jobs are not interrupted.
+func (s *Scheduler) ReplaceSchedules(stateChecker resource.StateChecker, operator resource.Operator, schedules []config.Schedule, dryRun bool, m *metrics.Metrics) error {
+	if s == nil || s.s == nil {
+		return fmt.Errorf("scheduler: not initialized")
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.s.RemoveByTags(managedScheduleTag)
+
+	for _, sch := range schedules {
+		if err := registerScheduleUnlocked(s, stateChecker, operator, sch, dryRun, m); err != nil {
+			return err
+		}
+	}
+
+	log.Info().
+		Int("jobs", len(s.s.Jobs())).
+		Msg("Scheduler jobs reloaded")
+
+	return nil
+}
+
+func registerScheduleUnlocked(s *Scheduler, stateChecker resource.StateChecker, operator resource.Operator, sch config.Schedule, dryRun bool, m *metrics.Metrics) error {
+	if sch.Actions.Start != nil && sch.Actions.Start.Enabled {
+		def, err := ScheduleToJobDefinition(sch, sch.Actions.Start)
+		if err != nil {
+			return fmt.Errorf("register schedule %q start action: %w", sch.Name, err)
+		}
+		name := sch.Name + ":start"
+		if err := s.addJobUnlocked(def, name, executor.Make(stateChecker, operator, sch, "start", dryRun, m)); err != nil {
+			return err
+		}
+	}
+	if sch.Actions.Stop != nil && sch.Actions.Stop.Enabled {
+		def, err := ScheduleToJobDefinition(sch, sch.Actions.Stop)
+		if err != nil {
+			return fmt.Errorf("register schedule %q stop action: %w", sch.Name, err)
+		}
+		name := sch.Name + ":stop"
+		if err := s.addJobUnlocked(def, name, executor.Make(stateChecker, operator, sch, "stop", dryRun, m)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Scheduler) addJobUnlocked(def gocron.JobDefinition, name string, fn func()) error {
+	if s == nil || s.s == nil {
+		return fmt.Errorf("scheduler: not initialized")
+	}
+
+	_, err := s.s.NewJob(def, gocron.NewTask(fn), gocron.WithName(name), gocron.WithTags(managedScheduleTag))
+	if err != nil {
+		return fmt.Errorf("scheduler: add job %q: %w", name, err)
+	}
+
+	log.Debug().
+		Str("job_name", name).
+		Msg("Scheduler job registered")
+
 	return nil
 }
 
