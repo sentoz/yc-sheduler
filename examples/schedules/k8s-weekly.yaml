@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/sentoz/yc-sheduler/refs/heads/master/static/schemas/schedule.json
+apiVersion: scheduler.yc/v1alpha1
+kind: Schedule
+metadata:
+  name: k8s-cluster-maintenance
+spec:
+  type: weekly
+  resource:
+    type: k8s_cluster
+    id: catabcdef1234567890
+    folder_id: b1g1234567890abcdef
+  actions:
+    stop:
+      enabled: true
+      day: 0
+      time: 02:00
+    start:
+      enabled: true
+      day: 1
+      time: 02:15
