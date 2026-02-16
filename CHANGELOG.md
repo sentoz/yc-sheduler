@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning][].
 
 ## _Untagged_
 
+## [1.0.0][] - 2026-02-16
+
 ### Added
 
 * Added Kubernetes-like schedule manifests (`apiVersion`, `kind`, `metadata`,
@@ -88,6 +90,7 @@ and this project adheres to [Semantic Versioning][].
 
 * Base project struct
 
+[1.0.0]: https://github.com/sentoz/yc-sheduler/tree/v1.0.0
 [0.1.3]: https://github.com/sentoz/yc-sheduler/tree/v0.1.3
 [0.1.2]: https://github.com/sentoz/yc-sheduler/tree/v0.1.2
 [0.1.1]: https://github.com/sentoz/yc-sheduler/tree/v0.1.1
