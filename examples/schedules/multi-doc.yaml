@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/sentoz/yc-sheduler/refs/heads/master/static/schemas/schedule.json
+apiVersion: scheduler.yc/v1alpha1
+kind: Schedule
+metadata:
+  name: vm-batch-start
+spec:
+  type: cron
+  resource:
+    type: vm
+    id: fhm0987654321fedcba
+    folder_id: b1g1234567890abcdef
+  actions:
+    start:
+      enabled: true
+      crontab: 0 8 * * 1-5
+---
+apiVersion: scheduler.yc/v1alpha1
+kind: Schedule
+metadata:
+  name: vm-batch-stop
+spec:
+  type: cron
+  resource:
+    type: vm
+    id: fhm0987654321fedcba
+    folder_id: b1g1234567890abcdef
+  actions:
+    stop:
+      enabled: true
+      crontab: 0 20 * * 1-5

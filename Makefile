@@ -127,4 +127,4 @@ release-notes:
 schema-gen:
 	@echo ">> generating JSON schema"
 	@mkdir -p static/schemas
-	$(GO) run ./cmd/schema-gen -out static/schemas/config.json
+	$(GO) run ./cmd/schema-gen -out static/schemas/config.json -schedule-out static/schemas/schedule.json

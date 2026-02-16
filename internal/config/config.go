@@ -9,8 +9,13 @@ type Config struct {
 	// If empty, system timezone is used.
 	Timezone Timezone `yaml:"timezone,omitempty" json:"timezone,omitempty" jsonschema:"example=Europe/Moscow"`
 
-	// Schedules contains all scheduled tasks.
-	Schedules []Schedule `yaml:"schedules" json:"schedules" jsonschema:"minItems=1"`
+	// SchedulesDir specifies a directory containing schedule manifests
+	// (one or more YAML documents separated by ---).
+	SchedulesDir string `yaml:"schedules_dir" json:"schedules_dir" jsonschema:"minLength=1,example=./schedules"`
+
+	// Schedules contains all loaded scheduled tasks.
+	// It is populated at runtime from SchedulesDir and is not part of config file schema.
+	Schedules []Schedule `yaml:"-" json:"-"`
 
 	// ValidationInterval defines how often the state validator runs.
 	ValidationInterval Duration `yaml:"validation_interval,omitempty" json:"validation_interval,omitempty" default:"10m" jsonschema:"example=10m"`
@@ -51,6 +56,43 @@ type Schedule struct {
 
 	// Name is a unique identifier for the schedule.
 	Name string `yaml:"name" json:"name" default:"" jsonschema:"minLength=1,example=vm-production-start"`
+
+	// Type specifies the schedule type (cron, daily, weekly, monthly).
+	Type string `yaml:"type" json:"type" default:"" jsonschema:"enum=cron,enum=daily,enum=weekly,enum=monthly,example=daily"`
+}
+
+// ScheduleManifest is a Kubernetes-like schedule document.
+type ScheduleManifest struct {
+	APIVersion string               `yaml:"apiVersion" json:"apiVersion" jsonschema:"enum=scheduler.yc/v1alpha1,example=scheduler.yc/v1alpha1"`
+	Kind       string               `yaml:"kind" json:"kind" jsonschema:"enum=Schedule,example=Schedule"`
+	Metadata   ScheduleManifestMeta `yaml:"metadata" json:"metadata"`
+	Spec       ScheduleManifestSpec `yaml:"spec" json:"spec"`
+}
+
+// ScheduleManifestMeta holds schedule object metadata.
+type ScheduleManifestMeta struct {
+	Name string `yaml:"name" json:"name" jsonschema:"minLength=1,example=vm-production-start"`
+}
+
+// ScheduleManifestSpec defines schedule settings for a manifest.
+type ScheduleManifestSpec struct {
+	// Actions defines what actions to perform at scheduled times.
+	Actions Actions `yaml:"actions" json:"actions"`
+
+	// CronJob configuration (used when Type is "cron").
+	CronJob *CronJobConfig `yaml:"cron_job,omitempty" json:"cron_job,omitempty"`
+
+	// DailyJob configuration (used when Type is "daily").
+	DailyJob *DailyJobConfig `yaml:"daily_job,omitempty" json:"daily_job,omitempty"`
+
+	// WeeklyJob configuration (used when Type is "weekly").
+	WeeklyJob *WeeklyJobConfig `yaml:"weekly_job,omitempty" json:"weekly_job,omitempty"`
+
+	// MonthlyJob configuration (used when Type is "monthly").
+	MonthlyJob *MonthlyJobConfig `yaml:"monthly_job,omitempty" json:"monthly_job,omitempty"`
+
+	// Resource defines the target resource to manage.
+	Resource Resource `yaml:"resource" json:"resource"`
 
 	// Type specifies the schedule type (cron, daily, weekly, monthly).
 	Type string `yaml:"type" json:"type" default:"" jsonschema:"enum=cron,enum=daily,enum=weekly,enum=monthly,example=daily"`

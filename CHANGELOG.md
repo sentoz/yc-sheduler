@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning][].
 
 ## _Untagged_
 
+### Added
+
+* Added Kubernetes-like schedule manifests (`apiVersion`, `kind`, `metadata`,
+  `spec`) loaded from a directory configured by `schedules_dir`.
+* Added support for multiple YAML documents in one schedule file using `---`.
+* Added a dedicated schedule JSON schema at `static/schemas/schedule.json`.
+* Added schedule examples in `examples/schedules/` and deployment examples in
+  `deploy/schedules/`.
+
+### Changed
+
+* Main config now stores global settings plus `schedules_dir`; schedules are
+  loaded from manifest files instead of inline `schedules:` list.
+* Kubernetes deployment now mounts an additional ConfigMap with schedule files
+  into `/schedules`.
+
 ## [0.1.3][] - 2026-01-22
 
 ### Fixed

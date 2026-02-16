@@ -15,4 +15,10 @@ var (
 
 	// ErrSchemaValidation is returned when configuration does not match the JSON schema.
 	ErrSchemaValidation = errors.New("configuration schema validation failed")
+
+	// ErrScheduleSchemaLoad is returned when the embedded schedule schema cannot be loaded or compiled.
+	ErrScheduleSchemaLoad = errors.New("failed to load schedule schema")
+
+	// ErrScheduleSchemaValidation is returned when a schedule document does not match the JSON schema.
+	ErrScheduleSchemaValidation = errors.New("schedule schema validation failed")
 )
