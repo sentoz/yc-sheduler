@@ -18,9 +18,9 @@ type UIProvider struct {
 	store        *ScheduleStore
 	stateChecker resource.StateChecker
 	now          func() time.Time
+	cache        map[string]cachedResourceStatus
 
-	mu    sync.Mutex
-	cache map[string]cachedResourceStatus
+	mu sync.Mutex
 }
 
 // NewUIProvider creates a calendar UI provider.
@@ -101,6 +101,6 @@ func (p *UIProvider) getResourceStatus(ctx context.Context, key string, resource
 }
 
 type cachedResourceStatus struct {
-	status    web.ResourceStatus
 	expiresAt time.Time
+	status    web.ResourceStatus
 }

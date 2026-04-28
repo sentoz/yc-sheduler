@@ -8,9 +8,10 @@ import (
 
 // ScheduleStore provides concurrent read access to current schedules for the UI.
 type ScheduleStore struct {
-	mu        sync.RWMutex
-	schedules []config.Schedule
 	timezone  string
+	schedules []config.Schedule
+
+	mu sync.RWMutex
 }
 
 // NewScheduleStore creates a store initialized with the current schedules.

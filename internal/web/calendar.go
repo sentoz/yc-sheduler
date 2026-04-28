@@ -22,17 +22,19 @@ type ScheduleProvider interface {
 
 // ResourceStatus describes the current live state of a resource.
 type ResourceStatus struct {
-	State          string `json:"state"`
-	IsTransitional bool   `json:"is_transitional,omitempty"`
-	Error          string `json:"error,omitempty"`
+	State string `json:"state"`
+	Error string `json:"error,omitempty"`
+
+	IsTransitional bool `json:"is_transitional,omitempty"`
 }
 
 type calendarResponse struct {
-	Timezone string           `json:"timezone"`
-	From     string           `json:"from"`
-	To       string           `json:"to"`
-	Title    string           `json:"title"`
-	Events   []calendar.Event `json:"events"`
+	Timezone string `json:"timezone"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Title    string `json:"title"`
+
+	Events []calendar.Event `json:"events"`
 }
 
 func registerCalendarAPI(mux *http.ServeMux, provider ScheduleProvider) {
