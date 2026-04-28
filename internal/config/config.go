@@ -31,6 +31,9 @@ type Config struct {
 
 	// MetricsEnabled toggles Prometheus metrics HTTP server.
 	MetricsEnabled bool `yaml:"metrics_enabled,omitempty" json:"metrics_enabled,omitempty" default:"false" jsonschema:"default=false"`
+
+	// UIEnabled toggles the calendar UI and its API endpoints.
+	UIEnabled bool `yaml:"ui_enabled,omitempty" json:"ui_enabled,omitempty" default:"false" jsonschema:"default=false"`
 }
 
 // Schedule defines a scheduled task for managing cloud resources.
