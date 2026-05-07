@@ -38,6 +38,8 @@ type Config struct {
 
 // Schedule defines a scheduled task for managing cloud resources.
 type Schedule struct {
+	// DisplayName is a human-friendly label for UI display.
+	DisplayName string `yaml:"-" json:"display_name,omitempty"`
 
 	// Actions defines what actions to perform at scheduled times.
 	Actions Actions `yaml:"actions" json:"actions"`
@@ -74,7 +76,8 @@ type ScheduleManifest struct {
 
 // ScheduleManifestMeta holds schedule object metadata.
 type ScheduleManifestMeta struct {
-	Name string `yaml:"name" json:"name" jsonschema:"minLength=1,example=vm-production-start"`
+	Name        string            `yaml:"name" json:"name" jsonschema:"minLength=1,example=vm-production-start"`
+	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
 }
 
 // ScheduleManifestSpec defines schedule settings for a manifest.

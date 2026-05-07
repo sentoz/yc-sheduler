@@ -13,18 +13,19 @@ import (
 
 // Event represents a single scheduled action occurrence in the calendar.
 type Event struct {
-	ScheduleName string `json:"schedule_name"`
-	ResourceType string `json:"resource_type"`
-	ResourceID   string `json:"resource_id"`
-	FolderID     string `json:"folder_id,omitempty"`
-	ResourceKey  string `json:"resource_key"`
-	Action       string `json:"action"`
-	Time         string `json:"time"`
-	LocalDate    string `json:"local_date"`
-	LocalTime    string `json:"local_time"`
-	State        string `json:"state,omitempty"`
-	StatusError  string `json:"status_error,omitempty"`
-	Transitional bool   `json:"transitional,omitempty"`
+	ScheduleName        string `json:"schedule_name"`
+	ScheduleDisplayName string `json:"schedule_display_name"`
+	ResourceType        string `json:"resource_type"`
+	ResourceID          string `json:"resource_id"`
+	FolderID            string `json:"folder_id,omitempty"`
+	ResourceKey         string `json:"resource_key"`
+	Action              string `json:"action"`
+	Time                string `json:"time"`
+	LocalDate           string `json:"local_date"`
+	LocalTime           string `json:"local_time"`
+	State               string `json:"state,omitempty"`
+	StatusError         string `json:"status_error,omitempty"`
+	Transitional        bool   `json:"transitional,omitempty"`
 }
 
 // EventsInRange expands schedules into concrete calendar events in the inclusive
@@ -161,15 +162,16 @@ func expandAction(
 
 func newEvent(schedule config.Schedule, actionName string, at time.Time) Event {
 	return Event{
-		ScheduleName: schedule.Name,
-		ResourceType: schedule.Resource.Type,
-		ResourceID:   schedule.Resource.ID,
-		FolderID:     schedule.Resource.FolderID,
-		ResourceKey:  resourceKey(schedule.Resource),
-		Action:       actionName,
-		Time:         at.Format(time.RFC3339),
-		LocalDate:    at.Format(dateOnlyLayout),
-		LocalTime:    at.Format("15:04:05"),
+		ScheduleName:        schedule.Name,
+		ScheduleDisplayName: scheduleDisplayName(schedule),
+		ResourceType:        schedule.Resource.Type,
+		ResourceID:          schedule.Resource.ID,
+		FolderID:            schedule.Resource.FolderID,
+		ResourceKey:         resourceKey(schedule.Resource),
+		Action:              actionName,
+		Time:                at.Format(time.RFC3339),
+		LocalDate:           at.Format(dateOnlyLayout),
+		LocalTime:           at.Format("15:04:05"),
 	}
 }
 
@@ -213,4 +215,11 @@ func FormatMonthTitle(t time.Time) string {
 
 func resourceKey(resource config.Resource) string {
 	return resource.Type + ":" + resource.FolderID + ":" + resource.ID
+}
+
+func scheduleDisplayName(schedule config.Schedule) string {
+	if schedule.DisplayName != "" {
+		return schedule.DisplayName
+	}
+	return schedule.Name
 }

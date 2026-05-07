@@ -194,6 +194,12 @@
           "examples": [
             "vm-production-start"
           ]
+        },
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
         }
       },
       "additionalProperties": false,
