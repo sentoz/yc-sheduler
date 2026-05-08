@@ -2,9 +2,10 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/sentoz/yc-sheduler/internal/config"
 	"github.com/sentoz/yc-sheduler/internal/resource"
@@ -103,8 +104,13 @@ func (p *UIProvider) getResourceStatus(ctx context.Context, key string, resource
 	state, isTransitional, err := p.stateChecker.GetState(ctx, resource)
 	status := web.ResourceStatus{}
 	if err != nil {
+		log.Warn().Err(err).
+			Str("resource_type", resource.Type).
+			Str("resource_id", resource.ID).
+			Str("folder_id", resource.FolderID).
+			Msg("Failed to fetch resource state for UI")
 		status.State = "unknown"
-		status.Error = fmt.Sprintf("failed to fetch state: %v", err)
+		status.Error = "failed to fetch state"
 	} else {
 		status.State = state
 		status.IsTransitional = isTransitional

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning][].
 
 * Calendar UI now shows when resource validation is disabled instead of showing
   a validation refresh interval.
+* Sanitized resource status errors returned by the calendar API while keeping
+  detailed errors in server logs.
 
 ## [1.1.0][] - 2026-05-08
 

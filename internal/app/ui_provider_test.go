@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -47,6 +48,38 @@ func TestUIProviderCachesResourceStatus(t *testing.T) {
 
 	if got := calls.Load(); got != 2 {
 		t.Fatalf("GetState call count after ttl = %d, want 2", got)
+	}
+}
+
+func TestUIProviderSanitizesResourceStatusError(t *testing.T) {
+	checker := fakeStateChecker{
+		getState: func(context.Context, config.Resource) (string, bool, error) {
+			return "", false, errors.New("secret token detail")
+		},
+	}
+
+	store := NewScheduleStore("Europe/Moscow", nil)
+	provider := NewUIProvider(store, checker, "10m", true)
+
+	schedules := []config.Schedule{
+		{
+			Name: "a",
+			Resource: config.Resource{
+				Type:     "vm",
+				ID:       "id",
+				FolderID: "folder",
+			},
+		},
+	}
+
+	statuses := provider.ResourceStatuses(t.Context(), schedules)
+	status := statuses["vm:folder:id"]
+
+	if status.State != "unknown" {
+		t.Fatalf("State = %q, want unknown", status.State)
+	}
+	if status.Error != "failed to fetch state" {
+		t.Fatalf("Error = %q, want sanitized error", status.Error)
 	}
 }
 
