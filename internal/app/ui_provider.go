@@ -15,23 +15,25 @@ const statusCacheTTL = 30 * time.Second
 
 // UIProvider supplies schedules and live resource states to the calendar UI.
 type UIProvider struct {
-	store              *ScheduleStore
-	stateChecker       resource.StateChecker
-	now                func() time.Time
-	cache              map[string]cachedResourceStatus
-	validationInterval string
+	store               *ScheduleStore
+	stateChecker        resource.StateChecker
+	now                 func() time.Time
+	cache               map[string]cachedResourceStatus
+	validationInterval  string
+	validationResources bool
 
 	mu sync.Mutex
 }
 
 // NewUIProvider creates a calendar UI provider.
-func NewUIProvider(store *ScheduleStore, stateChecker resource.StateChecker, validationInterval string) *UIProvider {
+func NewUIProvider(store *ScheduleStore, stateChecker resource.StateChecker, validationInterval string, validationResources bool) *UIProvider {
 	return &UIProvider{
-		store:              store,
-		stateChecker:       stateChecker,
-		now:                time.Now,
-		cache:              make(map[string]cachedResourceStatus),
-		validationInterval: validationInterval,
+		store:               store,
+		stateChecker:        stateChecker,
+		now:                 time.Now,
+		cache:               make(map[string]cachedResourceStatus),
+		validationInterval:  validationInterval,
+		validationResources: validationResources,
 	}
 }
 
@@ -57,6 +59,14 @@ func (p *UIProvider) ValidationInterval() string {
 		return ""
 	}
 	return p.validationInterval
+}
+
+// ValidationResources returns whether corrective resource validation is enabled.
+func (p *UIProvider) ValidationResources() bool {
+	if p == nil {
+		return false
+	}
+	return p.validationResources
 }
 
 // ResourceStatuses returns the current state for unique resources referenced by schedules.

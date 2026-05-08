@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog][],
 and this project adheres to [Semantic Versioning][].
 
+## _Untagged_
+
+### Added
+
+* Added `validation_resources` config flag to make corrective resource state
+  validation optional.
+
+### Changed
+
+* Calendar UI now shows when resource validation is disabled instead of showing
+  a validation refresh interval.
+
 ## [1.1.0][] - 2026-05-08
 
 ### Added

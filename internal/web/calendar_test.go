@@ -54,6 +54,9 @@ func TestCalendarAPI(t *testing.T) {
 	if !strings.Contains(body, "\"validation_interval\":\"10m\"") {
 		t.Fatalf("body = %s, want validation_interval", body)
 	}
+	if !strings.Contains(body, "\"validation_resources\":true") {
+		t.Fatalf("body = %s, want validation_resources", body)
+	}
 }
 
 func TestCalendarAPIRejectsInvalidRange(t *testing.T) {
@@ -121,6 +124,10 @@ func (p testProvider) Timezone() string {
 
 func (p testProvider) ValidationInterval() string {
 	return "10m"
+}
+
+func (p testProvider) ValidationResources() bool {
+	return true
 }
 
 func (p testProvider) ResourceStatuses(_ context.Context, schedules []config.Schedule) map[string]ResourceStatus {

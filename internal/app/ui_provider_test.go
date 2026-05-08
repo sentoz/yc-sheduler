@@ -19,7 +19,7 @@ func TestUIProviderCachesResourceStatus(t *testing.T) {
 	}
 
 	store := NewScheduleStore("Europe/Moscow", nil)
-	provider := NewUIProvider(store, checker, "10m")
+	provider := NewUIProvider(store, checker, "10m", true)
 
 	current := time.Date(2026, time.April, 29, 12, 0, 0, 0, time.UTC)
 	provider.now = func() time.Time { return current }

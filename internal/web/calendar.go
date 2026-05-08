@@ -18,6 +18,7 @@ type ScheduleProvider interface {
 	Schedules() []config.Schedule
 	Timezone() string
 	ValidationInterval() string
+	ValidationResources() bool
 	ResourceStatuses(ctx context.Context, schedules []config.Schedule) map[string]ResourceStatus
 }
 
@@ -30,13 +31,13 @@ type ResourceStatus struct {
 }
 
 type calendarResponse struct {
-	Timezone           string `json:"timezone"`
-	ValidationInterval string `json:"validation_interval"`
-	From               string `json:"from"`
-	To                 string `json:"to"`
-	Title              string `json:"title"`
-
-	Events []calendar.Event `json:"events"`
+	Timezone            string           `json:"timezone"`
+	ValidationInterval  string           `json:"validation_interval"`
+	From                string           `json:"from"`
+	To                  string           `json:"to"`
+	Title               string           `json:"title"`
+	Events              []calendar.Event `json:"events"`
+	ValidationResources bool             `json:"validation_resources"`
 }
 
 func registerCalendarAPI(mux *http.ServeMux, provider ScheduleProvider) {
@@ -67,12 +68,13 @@ func handleCalendar(w http.ResponseWriter, r *http.Request, provider SchedulePro
 	mergeResourceStatuses(events, provider.ResourceStatuses(r.Context(), schedules))
 
 	response := calendarResponse{
-		Timezone:           location.String(),
-		ValidationInterval: provider.ValidationInterval(),
-		From:               from.Format(dateOnlyLayout),
-		To:                 to.Format(dateOnlyLayout),
-		Title:              calendar.FormatMonthTitle(from.In(location)),
-		Events:             events,
+		Timezone:            location.String(),
+		ValidationInterval:  provider.ValidationInterval(),
+		ValidationResources: provider.ValidationResources(),
+		From:                from.Format(dateOnlyLayout),
+		To:                  to.Format(dateOnlyLayout),
+		Title:               calendar.FormatMonthTitle(from.In(location)),
+		Events:              events,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

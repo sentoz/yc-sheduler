@@ -4,6 +4,8 @@ package config
 //
 //betteralign:ignore
 type Config struct {
+	// ValidationResources toggles periodic resource state validation and corrective jobs.
+	ValidationResources *bool `yaml:"validation_resources,omitempty" json:"validation_resources,omitempty" default:"true" jsonschema:"default=true"`
 
 	// Timezone specifies the timezone for schedules (IANA timezone name).
 	// If empty, system timezone is used.
@@ -34,6 +36,14 @@ type Config struct {
 
 	// UIEnabled toggles the calendar UI and its API endpoints.
 	UIEnabled bool `yaml:"ui_enabled,omitempty" json:"ui_enabled,omitempty" default:"false" jsonschema:"default=false"`
+}
+
+// IsValidationResourcesEnabled returns the effective resource validation flag.
+func (c *Config) IsValidationResourcesEnabled() bool {
+	if c == nil || c.ValidationResources == nil {
+		return true
+	}
+	return *c.ValidationResources
 }
 
 // Schedule defines a scheduled task for managing cloud resources.
