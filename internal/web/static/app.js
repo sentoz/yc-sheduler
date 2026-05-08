@@ -21,6 +21,7 @@ const actionFilter = document.getElementById("action-filter");
 const typeFilter = document.getElementById("type-filter");
 const scheduleFilter = document.getElementById("schedule-filter");
 const scheduleOptions = document.getElementById("schedule-options");
+const statusRefreshLabel = document.getElementById("status-refresh-label");
 const scheduleFilterIsInput = scheduleFilter && scheduleFilter.tagName === "INPUT";
 
 document.getElementById("prev-month").addEventListener("click", () => {
@@ -90,6 +91,7 @@ async function loadWeek() {
 
     monthTitle.textContent = formatWeekTitle(state.currentWeekStart);
     timezoneLabel.textContent = payload.timezone || "";
+    renderStatusRefreshLabel(payload.validation_interval || "");
     render();
   } catch (error) {
     monthTitle.textContent = formatWeekTitle(state.currentWeekStart);
@@ -99,6 +101,7 @@ async function loadWeek() {
     selectedDateCount.textContent = "";
     selectedDayEvents.className = "event-list empty-state";
     selectedDayEvents.textContent = "Календарь временно недоступен.";
+    renderStatusRefreshLabel("");
     console.error(error);
   }
 }
@@ -108,10 +111,20 @@ function render() {
   renderSelectedDay();
 }
 
+function renderStatusRefreshLabel(interval) {
+  if (!statusRefreshLabel) {
+    return;
+  }
+  statusRefreshLabel.textContent = interval ? `Статус обновляется каждые ${interval}` : "";
+}
+
 function renderCalendar() {
   const days = buildWeekDays(state.currentWeekStart);
   const today = formatDateLocal(todayInTimezone());
-  const groupedByDate = groupEventsByDate(filteredEvents());
+  const events = filteredEvents();
+  const rangeEvents = applyFilters(state.events, { ignoreAction: true });
+  const groupedByDate = groupEventsByDate(events);
+  const stateRanges = buildResourceStateRanges(rangeEvents, days);
 
   calendarGrid.innerHTML = "";
   calendarGrid.className = "week-timeline";
@@ -167,6 +180,10 @@ function renderCalendar() {
       cell.type = "button";
       cell.className = "week-hour-cell";
       cell.dataset.date = day.date;
+      const rangeState = hourRangeState(stateRanges, day.date, hour);
+      if (rangeState !== "") {
+        cell.classList.add(`week-hour-cell--range-${rangeState}`);
+      }
       if (day.date === today) {
         cell.classList.add("week-hour-cell--today");
       }
@@ -228,8 +245,15 @@ function renderCalendar() {
           group.events.slice(0, 12).forEach((event) => {
             const dot = document.createElement("span");
             dot.className = "event-dot";
+            if (normalizeScheduleFilterValue(state.selectedSchedule) === displayName(event)) {
+              dot.classList.add("event-dot--filtered");
+            }
             dot.style.backgroundColor = eventColor(event);
             dot.title = formatEventTooltip(event);
+            dot.addEventListener("click", (clickEvent) => {
+              clickEvent.stopPropagation();
+              toggleScheduleFilter(displayName(event));
+            });
             dots.appendChild(dot);
           });
 
@@ -239,6 +263,14 @@ function renderCalendar() {
           action.className = `time-bucket__action time-bucket__action--${group.action}`;
           const actionIcon = document.createElement("span");
           actionIcon.className = `time-bucket__action-icon time-bucket__action-icon--${group.action}`;
+          if (state.selectedFilter === group.action) {
+            actionIcon.classList.add("time-bucket__action-icon--filtered");
+          }
+          actionIcon.title = `Фильтр: ${group.action}`;
+          actionIcon.addEventListener("click", (clickEvent) => {
+            clickEvent.stopPropagation();
+            toggleActionFilter(group.action);
+          });
           action.appendChild(actionIcon);
           bucket.appendChild(action);
 
@@ -326,6 +358,23 @@ function renderSelectedDay() {
 
 function filteredEvents() {
   return applyFilters(state.events);
+}
+
+function toggleScheduleFilter(scheduleName) {
+  const current = normalizeScheduleFilterValue(state.selectedSchedule);
+  state.selectedSchedule = current === scheduleName ? "" : scheduleName;
+  if (scheduleFilter) {
+    scheduleFilter.value = state.selectedSchedule === "" ? "all" : state.selectedSchedule;
+  }
+  syncFilterControls();
+  render();
+}
+
+function toggleActionFilter(action) {
+  state.selectedFilter = state.selectedFilter === action ? "all" : action;
+  actionFilter.value = state.selectedFilter;
+  syncFilterControls();
+  render();
 }
 
 function syncFilterControls() {
@@ -496,6 +545,68 @@ function groupEventsByAction(events) {
   });
 }
 
+function buildResourceStateRanges(events, days) {
+  const resourceKeys = Array.from(new Set(events.map((event) => event.resource_key).filter(Boolean)));
+  if (resourceKeys.length !== 1 || days.length === 0) {
+    return [];
+  }
+
+  const actions = events
+    .filter((event) => event.action === "start" || event.action === "stop")
+    .slice()
+    .sort((left, right) => left.time.localeCompare(right.time));
+  if (actions.length === 0) {
+    return [];
+  }
+
+  const firstDay = parseLocalDate(days[0].date);
+  const rangeStart = firstDay.getTime();
+  const rangeEnd = addDays(parseLocalDate(days[days.length - 1].date), 1).getTime();
+  const ranges = [];
+
+  let cursor = rangeStart;
+  let currentState = actions[0].action === "start" ? "stopped" : "running";
+
+  actions.forEach((event) => {
+    const eventAt = parseLocalDateTime(event.local_date, event.local_time).getTime();
+    const clampedAt = Math.max(rangeStart, Math.min(eventAt, rangeEnd));
+    if (clampedAt > cursor) {
+      ranges.push({ from: cursor, to: clampedAt, state: currentState });
+    }
+    cursor = clampedAt;
+    currentState = event.action === "start" ? "running" : "stopped";
+  });
+
+  if (cursor < rangeEnd) {
+    ranges.push({ from: cursor, to: rangeEnd, state: currentState });
+  }
+
+  return ranges;
+}
+
+function hourRangeState(ranges, date, hour) {
+  if (ranges.length === 0) {
+    return "";
+  }
+
+  const from = parseLocalDateTime(date, `${String(hour).padStart(2, "0")}:00:00`).getTime();
+  const to = from + 60 * 60 * 1000;
+  const overlap = { running: 0, stopped: 0 };
+
+  ranges.forEach((range) => {
+    const overlapFrom = Math.max(from, range.from);
+    const overlapTo = Math.min(to, range.to);
+    if (overlapTo > overlapFrom) {
+      overlap[range.state] += overlapTo - overlapFrom;
+    }
+  });
+
+  if (overlap.running === 0 && overlap.stopped === 0) {
+    return "";
+  }
+  return overlap.running >= overlap.stopped ? "running" : "stopped";
+}
+
 function buildWeekDays(weekStart) {
   const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   return Array.from({ length: 7 }, (_, index) => {
@@ -567,6 +678,17 @@ function formatDateLocal(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function parseLocalDateTime(dateString, timeString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const [hour, minute, second = 0] = timeString.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute, second);
 }
 
 function todayInTimezone() {

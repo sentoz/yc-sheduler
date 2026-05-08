@@ -20,16 +20,18 @@ type UIProvider struct {
 	now          func() time.Time
 	cache        map[string]cachedResourceStatus
 
-	mu sync.Mutex
+	mu                 sync.Mutex
+	validationInterval string
 }
 
 // NewUIProvider creates a calendar UI provider.
-func NewUIProvider(store *ScheduleStore, stateChecker resource.StateChecker) *UIProvider {
+func NewUIProvider(store *ScheduleStore, stateChecker resource.StateChecker, validationInterval string) *UIProvider {
 	return &UIProvider{
-		store:        store,
-		stateChecker: stateChecker,
-		now:          time.Now,
-		cache:        make(map[string]cachedResourceStatus),
+		store:              store,
+		stateChecker:       stateChecker,
+		now:                time.Now,
+		cache:              make(map[string]cachedResourceStatus),
+		validationInterval: validationInterval,
 	}
 }
 
@@ -47,6 +49,14 @@ func (p *UIProvider) Timezone() string {
 		return ""
 	}
 	return p.store.Timezone()
+}
+
+// ValidationInterval returns the configured state validator interval.
+func (p *UIProvider) ValidationInterval() string {
+	if p == nil {
+		return ""
+	}
+	return p.validationInterval
 }
 
 // ResourceStatuses returns the current state for unique resources referenced by schedules.

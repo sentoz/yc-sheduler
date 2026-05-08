@@ -57,6 +57,11 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.formatCompact())
 }
 
+// String returns duration in compact Go-style format.
+func (d Duration) String() string {
+	return d.formatCompact()
+}
+
 // formatCompact formats duration in compact format (e.g., "10m" instead of "10m0s").
 func (d Duration) formatCompact() string {
 	if d.Duration == 0 {

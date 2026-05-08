@@ -199,13 +199,33 @@ body {
   white-space: normal;
 }
 
+.week-hour-cell--range-running {
+  background: rgba(62, 207, 142, 0.08);
+}
+
+.week-hour-cell--range-stopped {
+  background: rgba(255, 138, 101, 0.07);
+}
+
 .week-hour-cell:hover,
 .week-hour-cell--selected {
   background: #1c2230;
 }
 
+.week-hour-cell--selected {
+  box-shadow: inset 0 0 0 1px rgba(89, 195, 195, 0.72);
+}
+
 .week-hour-cell--today {
   background: rgba(89, 195, 195, 0.05);
+}
+
+.week-hour-cell--today.week-hour-cell--range-running {
+  background: rgba(62, 207, 142, 0.11);
+}
+
+.week-hour-cell--today.week-hour-cell--range-stopped {
+  background: rgba(255, 138, 101, 0.1);
 }
 
 .week-hour-cell--filled {
@@ -300,6 +320,12 @@ body {
   height: 16px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.time-bucket__action-icon--filtered {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgba(89, 195, 195, 0.28), 0 0 0 4px rgba(89, 195, 195, 0.16);
 }
 
 .time-bucket__action-icon--start {
@@ -340,6 +366,12 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+
+.event-dot--filtered {
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 2px rgba(237, 242, 247, 0.32), 0 0 0 4px rgba(89, 195, 195, 0.22);
 }
 
 .calendar-grid {
@@ -697,9 +729,15 @@ body {
   color: var(--muted);
 }
 
-.status-note {
+.app-footer {
+  margin-top: 12px;
   color: var(--muted);
   font-size: 13px;
+  text-align: right;
+}
+
+.app-footer:empty {
+  display: none;
 }
 
 .filter select,

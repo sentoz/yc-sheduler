@@ -59,7 +59,7 @@ func New(cfg *config.Config, client *yc.Client, dryRun bool) (*App, error) {
 	scheduleStore := NewScheduleStore(timezone, cfg.Schedules)
 	var scheduleProvider web.ScheduleProvider
 	if cfg.UIEnabled {
-		scheduleProvider = NewUIProvider(scheduleStore, stateChecker)
+		scheduleProvider = NewUIProvider(scheduleStore, stateChecker, cfg.ValidationInterval.String())
 	}
 
 	// Create web server
