@@ -76,8 +76,8 @@ type ScheduleManifest struct {
 
 // ScheduleManifestMeta holds schedule object metadata.
 type ScheduleManifestMeta struct {
-	Name        string            `yaml:"name" json:"name" jsonschema:"minLength=1,example=vm-production-start"`
 	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
+	Name        string            `yaml:"name" json:"name" jsonschema:"minLength=1,example=vm-production-start"`
 }
 
 // ScheduleManifestSpec defines schedule settings for a manifest.

@@ -15,13 +15,13 @@ const statusCacheTTL = 30 * time.Second
 
 // UIProvider supplies schedules and live resource states to the calendar UI.
 type UIProvider struct {
-	store        *ScheduleStore
-	stateChecker resource.StateChecker
-	now          func() time.Time
-	cache        map[string]cachedResourceStatus
-
-	mu                 sync.Mutex
+	store              *ScheduleStore
+	stateChecker       resource.StateChecker
+	now                func() time.Time
+	cache              map[string]cachedResourceStatus
 	validationInterval string
+
+	mu sync.Mutex
 }
 
 // NewUIProvider creates a calendar UI provider.
