@@ -59,7 +59,7 @@ func New(cfg *config.Config, client *yc.Client, dryRun bool) (*App, error) {
 	scheduleStore := NewScheduleStore(timezone, cfg.Schedules)
 	var scheduleProvider web.ScheduleProvider
 	if cfg.UIEnabled {
-		scheduleProvider = NewUIProvider(scheduleStore, stateChecker, cfg.ValidationInterval.String())
+		scheduleProvider = NewUIProvider(scheduleStore, stateChecker, cfg.ValidationInterval.String(), cfg.IsValidationResourcesEnabled())
 	}
 
 	// Create web server
@@ -108,8 +108,11 @@ func (a *App) Run(ctx context.Context) error {
 		a.webServer.Start()
 	}
 
-	// Start validator
-	a.validator.Start(ctx, a.cfg.ValidationInterval.Std())
+	if a.cfg.IsValidationResourcesEnabled() {
+		a.validator.Start(ctx, a.cfg.ValidationInterval.Std())
+	} else {
+		log.Info().Msg("Resource validation is disabled")
+	}
 	go a.reloader.Start(ctx)
 
 	log.Info().Msg("yc-scheduler started")

@@ -91,7 +91,7 @@ async function loadWeek() {
 
     monthTitle.textContent = formatWeekTitle(state.currentWeekStart);
     timezoneLabel.textContent = payload.timezone || "";
-    renderStatusRefreshLabel(payload.validation_interval || "");
+    renderStatusRefreshLabel(payload.validation_interval || "", payload.validation_resources !== false);
     render();
   } catch (error) {
     monthTitle.textContent = formatWeekTitle(state.currentWeekStart);
@@ -101,7 +101,7 @@ async function loadWeek() {
     selectedDateCount.textContent = "";
     selectedDayEvents.className = "event-list empty-state";
     selectedDayEvents.textContent = "Календарь временно недоступен.";
-    renderStatusRefreshLabel("");
+    renderStatusRefreshLabel("", true);
     console.error(error);
   }
 }
@@ -111,8 +111,12 @@ function render() {
   renderSelectedDay();
 }
 
-function renderStatusRefreshLabel(interval) {
+function renderStatusRefreshLabel(interval, validationEnabled) {
   if (!statusRefreshLabel) {
+    return;
+  }
+  if (!validationEnabled) {
+    statusRefreshLabel.textContent = "Валидация ресурсов отключена";
     return;
   }
   statusRefreshLabel.textContent = interval ? `Статус обновляется каждые ${interval}` : "";

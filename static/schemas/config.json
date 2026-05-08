@@ -5,6 +5,11 @@
   "$defs": {
     "Config": {
       "properties": {
+        "validation_resources": {
+          "type": "boolean",
+          "description": "ValidationResources toggles periodic resource state validation and corrective jobs.",
+          "default": true
+        },
         "timezone": {
           "$ref": "#/$defs/Timezone",
           "description": "Timezone specifies the timezone for schedules (IANA timezone name).\nIf empty, system timezone is used."
