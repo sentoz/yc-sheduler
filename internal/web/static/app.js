@@ -3,6 +3,7 @@ const state = {
   selectedDate: null,
   selectedHour: null,
   selectedTime: null,
+  selectedBucketAction: null,
   selectedFilter: "all",
   selectedType: "all",
   selectedSchedule: "",
@@ -26,6 +27,7 @@ document.getElementById("prev-month").addEventListener("click", () => {
   state.currentWeekStart = addDays(state.currentWeekStart, -7);
   state.selectedHour = null;
   state.selectedTime = null;
+  state.selectedBucketAction = null;
   loadWeek();
 });
 
@@ -33,6 +35,7 @@ document.getElementById("next-month").addEventListener("click", () => {
   state.currentWeekStart = addDays(state.currentWeekStart, 7);
   state.selectedHour = null;
   state.selectedTime = null;
+  state.selectedBucketAction = null;
   loadWeek();
 });
 
@@ -42,6 +45,7 @@ document.getElementById("today").addEventListener("click", () => {
   state.selectedDate = formatDateLocal(today);
   state.selectedHour = null;
   state.selectedTime = null;
+  state.selectedBucketAction = null;
   loadWeek();
 });
 
@@ -140,6 +144,7 @@ function renderCalendar() {
       state.selectedDate = day.date;
       state.selectedHour = null;
       state.selectedTime = null;
+      state.selectedBucketAction = null;
       render();
     });
     headerRow.appendChild(header);
@@ -174,47 +179,80 @@ function renderCalendar() {
         cell.setAttribute("aria-label", formatHourTooltip(hourGroups));
       }
 
-      hourGroups.forEach((group) => {
-        const bucket = document.createElement("span");
-        bucket.className = "time-bucket";
-        if (day.date === state.selectedDate && state.selectedTime === group.time) {
-          bucket.classList.add("time-bucket--selected");
+      hourGroups.forEach((timeGroup) => {
+        const actionGroups = groupEventsByAction(timeGroup.events);
+        const timeBucket = document.createElement("span");
+        timeBucket.className = "time-group-bucket";
+        if (day.date === state.selectedDate && state.selectedTime === timeGroup.time && state.selectedBucketAction === null) {
+          timeBucket.classList.add("time-group-bucket--selected");
         }
-        bucket.title = formatGroupTooltip(group);
-        bucket.setAttribute("aria-label", formatGroupTooltip(group));
-        bucket.addEventListener("click", (event) => {
+        timeBucket.title = formatGroupTooltip(timeGroup);
+        timeBucket.setAttribute("aria-label", formatGroupTooltip(timeGroup));
+
+        const timeHeader = document.createElement("span");
+        timeHeader.className = "time-group-bucket__header";
+        timeHeader.innerHTML = `
+          <span>${shortTime(timeGroup.time)}</span>
+          <span>(${timeGroup.events.length})</span>
+        `;
+        timeHeader.addEventListener("click", (event) => {
           event.stopPropagation();
           state.selectedDate = day.date;
           state.selectedHour = hour;
-          state.selectedTime = group.time;
+          state.selectedTime = timeGroup.time;
+          state.selectedBucketAction = null;
           render();
         });
+        timeBucket.appendChild(timeHeader);
 
-        const dots = document.createElement("span");
-        dots.className = "time-bucket__dots";
+        actionGroups.forEach((group) => {
+          const bucket = document.createElement("span");
+          bucket.className = `time-bucket time-bucket--${group.action}`;
+          if (day.date === state.selectedDate && state.selectedTime === group.time && state.selectedBucketAction === group.action) {
+            bucket.classList.add("time-bucket--selected");
+          }
+          bucket.title = formatActionGroupTooltip(group);
+          bucket.setAttribute("aria-label", formatActionGroupTooltip(group));
+          bucket.addEventListener("click", (event) => {
+            event.stopPropagation();
+            state.selectedDate = day.date;
+            state.selectedHour = hour;
+            state.selectedTime = group.time;
+            state.selectedBucketAction = group.action;
+            render();
+          });
 
-        group.events.slice(0, 12).forEach((event) => {
-          const dot = document.createElement("span");
-          dot.className = `event-dot event-dot--${event.action}`;
-          dot.style.backgroundColor = eventColor(event);
-          dot.title = formatEventTooltip(event);
-          dots.appendChild(dot);
+          const dots = document.createElement("span");
+          dots.className = "time-bucket__dots";
+
+          group.events.slice(0, 12).forEach((event) => {
+            const dot = document.createElement("span");
+            dot.className = "event-dot";
+            dot.style.backgroundColor = eventColor(event);
+            dot.title = formatEventTooltip(event);
+            dots.appendChild(dot);
+          });
+
+          bucket.appendChild(dots);
+
+          const action = document.createElement("span");
+          action.className = `time-bucket__action time-bucket__action--${group.action}`;
+          const actionIcon = document.createElement("span");
+          actionIcon.className = `time-bucket__action-icon time-bucket__action-icon--${group.action}`;
+          action.appendChild(actionIcon);
+          bucket.appendChild(action);
+
+          timeBucket.appendChild(bucket);
         });
 
-        bucket.appendChild(dots);
-
-        const count = document.createElement("span");
-        count.className = "time-bucket__count";
-        count.textContent = `(${group.events.length})`;
-        bucket.appendChild(count);
-
-        cell.appendChild(bucket);
+        cell.appendChild(timeBucket);
       });
 
       cell.addEventListener("click", () => {
         state.selectedDate = day.date;
         state.selectedHour = hour;
         state.selectedTime = null;
+        state.selectedBucketAction = null;
         render();
       });
       hourRow.appendChild(cell);
@@ -233,7 +271,9 @@ function renderSelectedDay() {
       return true;
     }
     if (state.selectedTime !== null) {
-      return event.local_time === state.selectedTime;
+      const matchesTime = event.local_time === state.selectedTime;
+      const matchesAction = state.selectedBucketAction === null || event.action === state.selectedBucketAction;
+      return matchesTime && matchesAction;
     }
     return Number(event.local_time.slice(0, 2)) === state.selectedHour;
   });
@@ -434,6 +474,28 @@ function groupEventsByHour(events, hour) {
   return groupEventsByTime(events).filter((group) => Number(group.time.slice(0, 2)) === hour);
 }
 
+function groupEventsByAction(events) {
+  const groups = new Map();
+
+  events.forEach((event) => {
+    const key = event.action || "unknown";
+    if (!groups.has(key)) {
+      groups.set(key, { action: key, time: event.local_time, events: [] });
+    }
+    groups.get(key).events.push(event);
+  });
+
+  return Array.from(groups.values()).sort((left, right) => {
+    const order = { start: 0, stop: 1 };
+    const leftOrder = order[left.action] ?? 10;
+    const rightOrder = order[right.action] ?? 10;
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+    return left.action.localeCompare(right.action);
+  });
+}
+
 function buildWeekDays(weekStart) {
   const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   return Array.from({ length: 7 }, (_, index) => {
@@ -468,7 +530,8 @@ function selectedDetailsTitle() {
     return formatHumanDate(state.selectedDate);
   }
   if (state.selectedTime !== null) {
-    return `${formatHumanDate(state.selectedDate)}, ${shortTime(state.selectedTime)}`;
+    const action = state.selectedBucketAction ? ` · ${state.selectedBucketAction}` : "";
+    return `${formatHumanDate(state.selectedDate)}, ${shortTime(state.selectedTime)}${action}`;
   }
   return `${formatHumanDate(state.selectedDate)}, ${String(state.selectedHour).padStart(2, "0")}:00`;
 }
@@ -582,6 +645,13 @@ function formatGroupTooltip(group) {
   return [
     `${shortTime(group.time)} · ${group.events.length} задач`,
     ...group.events.map((event) => `- ${displayName(event)} · ${event.action} · ${event.resource_type}`),
+  ].join("\n");
+}
+
+function formatActionGroupTooltip(group) {
+  return [
+    `${shortTime(group.time)} · ${group.action} · ${group.events.length} задач`,
+    ...group.events.map((event) => `- ${displayName(event)} · ${event.resource_type}`),
   ].join("\n");
 }
 
