@@ -31,10 +31,15 @@ type Config struct {
 
 	// MetricsEnabled toggles Prometheus metrics HTTP server.
 	MetricsEnabled bool `yaml:"metrics_enabled,omitempty" json:"metrics_enabled,omitempty" default:"false" jsonschema:"default=false"`
+
+	// UIEnabled toggles the calendar UI and its API endpoints.
+	UIEnabled bool `yaml:"ui_enabled,omitempty" json:"ui_enabled,omitempty" default:"false" jsonschema:"default=false"`
 }
 
 // Schedule defines a scheduled task for managing cloud resources.
 type Schedule struct {
+	// DisplayName is a human-friendly label for UI display.
+	DisplayName string `yaml:"-" json:"display_name,omitempty"`
 
 	// Actions defines what actions to perform at scheduled times.
 	Actions Actions `yaml:"actions" json:"actions"`
@@ -71,7 +76,8 @@ type ScheduleManifest struct {
 
 // ScheduleManifestMeta holds schedule object metadata.
 type ScheduleManifestMeta struct {
-	Name string `yaml:"name" json:"name" jsonschema:"minLength=1,example=vm-production-start"`
+	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
+	Name        string            `yaml:"name" json:"name" jsonschema:"minLength=1,example=vm-production-start"`
 }
 
 // ScheduleManifestSpec defines schedule settings for a manifest.

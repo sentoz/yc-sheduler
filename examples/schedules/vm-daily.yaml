@@ -3,6 +3,8 @@ apiVersion: scheduler.yc/v1alpha1
 kind: Schedule
 metadata:
   name: vm-production-workhours
+  annotations:
+    yc-scheduler/display-name: vm
 spec:
   type: daily
   resource:

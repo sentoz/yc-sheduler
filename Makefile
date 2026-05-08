@@ -14,9 +14,10 @@ BINARY     ?= yc-scheduler
 PKG        ?= ./cmd/yc-scheduler
 OUTPUT_DIR ?= build
 GO         ?= go
-LINTER     ?= golangci-lint
-ALIGNER    ?= betteralign
-CYCLONEDX  ?= cyclonedx-gomod
+TOOLBIN    ?= $(or $(shell $(GO) env GOBIN),$(shell $(GO) env GOPATH)/bin)
+LINTER     ?= $(TOOLBIN)/golangci-lint
+ALIGNER    ?= $(TOOLBIN)/betteralign
+CYCLONEDX  ?= $(TOOLBIN)/cyclonedx-gomod
 
 RACE ?= 0
 ifeq ($(RACE),1)
@@ -95,14 +96,14 @@ tools:
 	@echo ">> installing cyclonedx-gomod"
 	$(GO) install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
 
-lint:
+lint: tools
 	@echo ">> running golangci-lint"
 	$(LINTER) run ./...
 
-align:
+align: tools
 	$(ALIGNER) ./...
 
-align-fix:
+align-fix: tools
 	$(ALIGNER) -apply ./...
 
 sbom: sbom-app sbom-bin

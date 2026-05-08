@@ -12,6 +12,7 @@ max_concurrent_jobs: 5 # Maximum concurrent job executions (default: 5)
 validation_interval: 10m # State validator check interval (default: 10m)
 shutdown_timeout: 5m # Graceful shutdown timeout (default: 5m)
 metrics_enabled: false # Enable Prometheus metrics HTTP server (default: false)
+ui_enabled: false # Enable read-only calendar UI and API (default: false)
 metrics_port: 9090 # Port for metrics server (default: 9090)
 
 # Directory with schedule manifests (*.yaml / *.yml).

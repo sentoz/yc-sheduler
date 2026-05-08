@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>yc-scheduler calendar</title>
+    <link rel="stylesheet" href="/ui/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="toolbar">
+        <div class="toolbar__left">
+          <button id="prev-month" class="icon-button" type="button" aria-label="Предыдущая неделя" title="Предыдущая неделя">
+            <span aria-hidden="true">&larr;</span>
+          </button>
+          <button id="today" class="text-button" type="button">Сегодня</button>
+          <button id="next-month" class="icon-button" type="button" aria-label="Следующая неделя" title="Следующая неделя">
+            <span aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+        <div class="toolbar__center">
+          <h1 id="month-title">Календарь</h1>
+          <p id="timezone-label"></p>
+        </div>
+        <div class="toolbar__right">
+          <label class="filter">
+            <span>Задача</span>
+            <select id="schedule-filter">
+              <option value="all">Все</option>
+            </select>
+          </label>
+          <label class="filter">
+            <span>Тип</span>
+            <select id="type-filter">
+              <option value="all">Все</option>
+            </select>
+          </label>
+          <label class="filter">
+            <span>Действие</span>
+            <select id="action-filter">
+              <option value="all">Все</option>
+              <option value="start">start</option>
+              <option value="stop">stop</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="layout">
+        <div class="calendar-panel">
+          <div id="calendar-grid" class="week-timeline"></div>
+        </div>
+
+        <aside class="details-panel">
+          <div class="details-panel__header">
+            <h2 id="selected-date-title">Выберите день</h2>
+            <span id="selected-date-count"></span>
+          </div>
+          <div id="selected-day-events" class="event-list empty-state">
+            Загрузка...
+          </div>
+        </aside>
+      </section>
+
+      <footer class="app-footer">
+        <span id="status-refresh-label"></span>
+      </footer>
+    </main>
+
+    <script src="/ui/app.js" defer></script>
+  </body>
+</html>

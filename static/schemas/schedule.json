@@ -188,6 +188,12 @@
     },
     "ScheduleManifestMeta": {
       "properties": {
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
         "name": {
           "type": "string",
           "minLength": 1,

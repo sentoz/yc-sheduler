@@ -18,13 +18,17 @@ type Server struct {
 	cancel context.CancelFunc
 }
 
-// NewServer creates a new Server instance.
-func NewServer(ctx context.Context, addr string, metricsEnabled bool) (*Server, error) {
+func newMux(metricsEnabled bool, scheduleProvider ScheduleProvider) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Register metrics endpoint if enabled (must be before /)
 	if metricsEnabled {
 		mux.Handle("/metrics", promhttp.Handler())
+	}
+
+	if scheduleProvider != nil {
+		registerCalendarAPI(mux, scheduleProvider)
+		registerUIHandlers(mux)
 	}
 
 	// Register health endpoints
@@ -34,6 +38,13 @@ func NewServer(ctx context.Context, addr string, metricsEnabled bool) (*Server, 
 
 	// Register build info endpoint (must be last as it matches all paths)
 	mux.HandleFunc("/", BuildInfoHandler)
+
+	return mux
+}
+
+// NewServer creates a new Server instance.
+func NewServer(ctx context.Context, addr string, metricsEnabled bool, scheduleProvider ScheduleProvider) (*Server, error) {
+	mux := newMux(metricsEnabled, scheduleProvider)
 
 	srv := &http.Server{
 		Addr:              addr,

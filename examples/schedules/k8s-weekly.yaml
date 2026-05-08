@@ -3,6 +3,8 @@ apiVersion: scheduler.yc/v1alpha1
 kind: Schedule
 metadata:
   name: k8s-cluster-maintenance
+  annotations:
+    yc-scheduler/display-name: k8s
 spec:
   type: weekly
   resource:

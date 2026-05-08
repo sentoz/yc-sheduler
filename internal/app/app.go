@@ -19,16 +19,17 @@ import (
 
 // App represents the main application with all its dependencies.
 type App struct {
-	cfg          *config.Config
-	client       *yc.Client
-	stateChecker resource.StateChecker
-	operator     resource.Operator
-	scheduler    *scheduler.Scheduler
-	validator    *validator.Validator
-	metrics      *metrics.Metrics
-	webServer    *web.Server
-	reloader     *reloader.Reloader
-	dryRun       bool
+	cfg           *config.Config
+	client        *yc.Client
+	stateChecker  resource.StateChecker
+	operator      resource.Operator
+	scheduler     *scheduler.Scheduler
+	validator     *validator.Validator
+	metrics       *metrics.Metrics
+	webServer     *web.Server
+	reloader      *reloader.Reloader
+	scheduleStore *ScheduleStore
+	dryRun        bool
 }
 
 const schedulesReloadInterval = 10 * time.Second
@@ -55,9 +56,15 @@ func New(cfg *config.Config, client *yc.Client, dryRun bool) (*App, error) {
 	// Create validator
 	val := validator.New(stateChecker, operator, cfg, sched, m, dryRun)
 
+	scheduleStore := NewScheduleStore(timezone, cfg.Schedules)
+	var scheduleProvider web.ScheduleProvider
+	if cfg.UIEnabled {
+		scheduleProvider = NewUIProvider(scheduleStore, stateChecker, cfg.ValidationInterval.String())
+	}
+
 	// Create web server
 	addr := fmt.Sprintf(":%d", cfg.MetricsPort)
-	webSrv, err := web.NewServer(context.Background(), addr, cfg.MetricsEnabled)
+	webSrv, err := web.NewServer(context.Background(), addr, cfg.MetricsEnabled, scheduleProvider)
 	if err != nil {
 		log.Warn().
 			Str("addr", addr).
@@ -68,23 +75,24 @@ func New(cfg *config.Config, client *yc.Client, dryRun bool) (*App, error) {
 	}
 
 	schedulesReloader, err := reloader.New(cfg.SchedulesDir, schedulesReloadInterval, func(ctx context.Context) error {
-		return reloadSchedules(ctx, cfg.SchedulesDir, sched, stateChecker, operator, val, dryRun, m, cfg)
+		return reloadSchedules(ctx, cfg.SchedulesDir, sched, stateChecker, operator, val, dryRun, m, cfg, scheduleStore)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create schedules reloader: %w", err)
 	}
 
 	return &App{
-		cfg:          cfg,
-		client:       client,
-		stateChecker: stateChecker,
-		operator:     operator,
-		scheduler:    sched,
-		validator:    val,
-		metrics:      m,
-		webServer:    webSrv,
-		reloader:     schedulesReloader,
-		dryRun:       dryRun,
+		cfg:           cfg,
+		client:        client,
+		stateChecker:  stateChecker,
+		operator:      operator,
+		scheduler:     sched,
+		validator:     val,
+		metrics:       m,
+		webServer:     webSrv,
+		reloader:      schedulesReloader,
+		scheduleStore: scheduleStore,
+		dryRun:        dryRun,
 	}, nil
 }
 
@@ -125,6 +133,7 @@ func reloadSchedules(
 	dryRun bool,
 	m *metrics.Metrics,
 	cfg *config.Config,
+	store *ScheduleStore,
 ) error {
 	schedules, err := config.LoadSchedules(ctx, schedulesDir)
 	if err != nil {
@@ -137,6 +146,7 @@ func reloadSchedules(
 
 	cfg.Schedules = append([]config.Schedule(nil), schedules...)
 	val.UpdateSchedules(schedules)
+	store.Update(schedules)
 
 	return nil
 }

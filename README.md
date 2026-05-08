@@ -92,6 +92,8 @@ apiVersion: scheduler.yc/v1alpha1
 kind: Schedule
 metadata:
   name: vm-production-workhours
+  annotations:
+    yc-scheduler/display-name: vm-prod
 spec:
   type: daily
   resource:
@@ -110,6 +112,10 @@ spec:
 Полный пример конфигурации см. в [`config.example.yaml`](config.example.yaml).
 Примеры schedule-манифестов см. в [`examples/schedules/`](examples/schedules).
 Один YAML-файл может содержать несколько документов через `---`.
+
+Аннотация `metadata.annotations.yc-scheduler/display-name` задает короткое
+отображаемое имя расписания для календарного UI. Если аннотация не указана или
+пуста, UI использует значение `metadata.name`.
 
 ### Автоперезагрузка расписаний
 
@@ -179,6 +185,30 @@ kubectl apply -k deploy/
 - `resource_type` — тип ресурса (vm, k8s_cluster)
 - `action` — действие (start, stop)
 - `status` — статус (success, error, dry_run)
+
+### Календарный UI
+
+При включении `ui_enabled: true` HTTP-сервер приложения также отдает read-only
+UI с календарным просмотром расписаний:
+
+- `http://localhost:9090/ui/` — недельный календарь расписаний
+- `http://localhost:9090/api/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD` — JSON API
+  со списком событий за диапазон дат
+
+UI показывает:
+
+- день и время выполнения;
+- действие `start` или `stop`;
+- отображаемое имя расписания из `yc-scheduler/display-name` или `metadata.name`;
+- тип и идентификатор ресурса;
+- таймзону приложения;
+- текущий live-статус ресурса (`running`, `stopped` или переходное состояние).
+
+UI использует тот же HTTP-порт, что и health/build info/metrics endpoints, то
+есть значение `metrics_port` из конфигурации.
+
+Важно: интерфейс не содержит авторизации и рассчитан на внутреннее
+использование за trusted network или reverse proxy.
 
 ### Валидатор состояния
 

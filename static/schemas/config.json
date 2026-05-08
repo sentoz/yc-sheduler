@@ -40,6 +40,11 @@
           "type": "boolean",
           "description": "MetricsEnabled toggles Prometheus metrics HTTP server.",
           "default": false
+        },
+        "ui_enabled": {
+          "type": "boolean",
+          "description": "UIEnabled toggles the calendar UI and its API endpoints.",
+          "default": false
         }
       },
       "additionalProperties": false,
