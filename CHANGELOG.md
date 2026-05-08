@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog][],
 and this project adheres to [Semantic Versioning][].
 
-## _Untagged_
+## [1.2.0][] - 2026-05-08
 
 ### Added
 
@@ -114,6 +114,7 @@ and this project adheres to [Semantic Versioning][].
 
 * Base project struct
 
+[1.2.0]: https://github.com/sentoz/yc-sheduler/tree/v1.2.0
 [1.1.0]: https://github.com/sentoz/yc-sheduler/tree/v1.1.0
 [1.0.0]: https://github.com/sentoz/yc-sheduler/tree/v1.0.0
 [0.1.3]: https://github.com/sentoz/yc-sheduler/tree/v0.1.3
