@@ -341,10 +341,12 @@ function renderSelectedDay() {
           <span class="event-row__action">${event.action}</span>
           <span class="status-badge ${statusBadgeClass(event)}">${formatStateLabel(event)}</span>
         </div>
-        <h3 class="event-row__title">${displayName(event)}</h3>
-        <p class="event-row__meta">${event.resource_type} · ${event.resource_id}</p>
-        <p class="event-row__meta">${event.schedule_name}</p>
-        <p class="event-row__meta">${event.folder_id || ""}</p>
+        ${displayNameMarkup(event)}
+        <ul class="event-row__fields">
+          <li><span>scheduler name:</span> ${event.schedule_name}</li>
+          <li><span>${resourceIDLabel(event)}:</span> ${event.resource_id}</li>
+          <li><span>folder id:</span> ${event.folder_id || ""}</li>
+        </ul>
         <div class="event-row__status">
           <span class="event-row__status-text">${statusDescription(event)}</span>
         </div>
@@ -726,16 +728,38 @@ function shortTime(value) {
 
 function formatEventTooltip(event) {
   return [
-    displayName(event),
-    `${shortTime(event.local_time)} · ${event.action}`,
-    `${event.resource_type} · ${event.resource_id}`,
-    event.schedule_name,
-    `Статус: ${formatStateLabel(event)}`,
+    `${shortTime(event.local_time)} ${event.action}`,
+    annotatedDisplayName(event),
+    `scheduler name: ${event.schedule_name}`,
+    `${resourceIDLabel(event)}: ${event.resource_id}`,
+    `folder id: ${event.folder_id || ""}`,
+    `Status: ${formatStateLabel(event)}`,
   ].filter(Boolean).join("\n");
 }
 
 function displayName(event) {
   return event.schedule_display_name || event.schedule_name || "unnamed";
+}
+
+function displayNameMarkup(event) {
+  if (!event.schedule_display_name || event.schedule_display_name === event.schedule_name) {
+    return "";
+  }
+  return `<h3 class="event-row__display-name">${event.schedule_display_name}</h3>`;
+}
+
+function annotatedDisplayName(event) {
+  if (!event.schedule_display_name || event.schedule_display_name === event.schedule_name) {
+    return "";
+  }
+  return event.schedule_display_name;
+}
+
+function resourceIDLabel(event) {
+  if (event.resource_type === "k8s_cluster") {
+    return "k8s id";
+  }
+  return "vm id";
 }
 
 function eventColor(event) {

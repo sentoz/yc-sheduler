@@ -632,6 +632,11 @@ body {
   font-size: 12px;
 }
 
+.event-row__display-name {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -667,16 +672,21 @@ body {
   border-color: rgba(151, 163, 182, 0.28);
 }
 
-.event-row__title {
-  margin: 0 0 6px;
-  font-size: 16px;
+.event-row__fields {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text);
+  line-height: 1.4;
 }
 
-.event-row__meta {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.45;
+.event-row__fields li {
   word-break: break-word;
+}
+
+.event-row__fields span {
+  color: var(--muted);
 }
 
 .event-row__status {

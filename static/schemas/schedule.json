@@ -188,18 +188,18 @@
     },
     "ScheduleManifestMeta": {
       "properties": {
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
         "name": {
           "type": "string",
           "minLength": 1,
           "examples": [
             "vm-production-start"
           ]
-        },
-        "annotations": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "type": "object"
         }
       },
       "additionalProperties": false,
