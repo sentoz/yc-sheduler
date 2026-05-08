@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog][],
 and this project adheres to [Semantic Versioning][].
 
-## _Untagged_
+## [1.1.0][] - 2026-05-08
+
+### Added
+
+* Added read-only calendar UI, enabled by `ui_enabled`, with weekly schedule
+  view and `/api/calendar` JSON endpoint.
+
+### Changed
+
+* Updated project Go version and CI workflows to Go 1.26.2.
+* Updated Makefile tooling paths so lint/alignment tools run from Go tool bin.
 
 ## [1.0.0][] - 2026-02-16
 
@@ -90,6 +100,7 @@ and this project adheres to [Semantic Versioning][].
 
 * Base project struct
 
+[1.1.0]: https://github.com/sentoz/yc-sheduler/tree/v1.1.0
 [1.0.0]: https://github.com/sentoz/yc-sheduler/tree/v1.0.0
 [0.1.3]: https://github.com/sentoz/yc-sheduler/tree/v0.1.3
 [0.1.2]: https://github.com/sentoz/yc-sheduler/tree/v0.1.2
