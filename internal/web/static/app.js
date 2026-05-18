@@ -153,9 +153,8 @@ function renderCalendar() {
       header.classList.add("week-day-header--selected");
     }
     header.innerHTML = `
-      <span class="week-day-header__weekday">${day.weekday}</span>
+      <span class="week-day-header__weekday">${day.weekday} (${events.length})</span>
       <span class="week-day-header__date">${day.dayMonth}</span>
-      <span class="week-day-header__count">${events.length}</span>
     `;
     header.addEventListener("click", () => {
       state.selectedDate = day.date;
@@ -243,25 +242,10 @@ function renderCalendar() {
             render();
           });
 
-          const dots = document.createElement("span");
-          dots.className = "time-bucket__dots";
-
-          group.events.slice(0, 12).forEach((event) => {
-            const dot = document.createElement("span");
-            dot.className = "event-dot";
-            if (normalizeScheduleFilterValue(state.selectedSchedule) === displayName(event)) {
-              dot.classList.add("event-dot--filtered");
-            }
-            dot.style.backgroundColor = eventColor(event);
-            dot.title = formatEventTooltip(event);
-            dot.addEventListener("click", (clickEvent) => {
-              clickEvent.stopPropagation();
-              toggleScheduleFilter(displayName(event));
-            });
-            dots.appendChild(dot);
-          });
-
-          bucket.appendChild(dots);
+          const count = document.createElement("span");
+          count.className = "time-bucket__event-count";
+          count.textContent = eventCountText(group.events.length);
+          bucket.appendChild(count);
 
           const action = document.createElement("span");
           action.className = `time-bucket__action time-bucket__action--${group.action}`;
@@ -355,6 +339,9 @@ function renderSelectedDay() {
           <span class="event-row__status-text">${statusDescription(event)}</span>
         </div>
       `;
+      row.addEventListener("click", () => {
+        toggleScheduleFilter(displayName(event));
+      });
       groupCard.appendChild(row);
     });
 
@@ -766,27 +753,6 @@ function resourceIDLabel(event) {
   return "vm id";
 }
 
-function eventColor(event) {
-  const palette = [
-    "#3ecf8e",
-    "#ff8a65",
-    "#59c3c3",
-    "#f2c94c",
-    "#8ab4f8",
-    "#d386f7",
-    "#f78fb3",
-    "#a3e635",
-    "#f59e0b",
-    "#22d3ee",
-  ];
-  const key = displayName(event);
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) {
-    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  }
-  return palette[hash % palette.length];
-}
-
 function formatGroupTooltip(group) {
   if (group.events.length === 1) {
     return formatEventTooltip(group.events[0]);
@@ -823,6 +789,18 @@ function normalizeScheduleFilterValue(value) {
     return "";
   }
   return value.trim();
+}
+
+function eventCountText(count) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) {
+    return `${count} событие`;
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${count} события`;
+  }
+  return `${count} событий`;
 }
 
 function formatStateLabel(event) {
